@@ -1,0 +1,13 @@
+{
+  "_comment": "规范名别名表：把站方自定义写法统一到同一规范名，便于跨站聚合。键=归一化后的写法，值=要统一定到的规范名。改完本文件后运行任意命令会自动重算（SCHEMA_VERSION 需 +1 才会触发全表重算，或直接 python relay_scraper.py models 查看效果）",
+  "deepseek-chat": "deepseek-v3",
+  "deepseek-v3-1": "deepseek-v3.1",
+  "deepseek-coder": "deepseek-v3",
+  "gpt-41": "gpt-4.1",
+  "gpt-4o-0806": "gpt-4o",
+  "claude-35-sonnet": "claude-3-5-sonnet",
+  "claude-37-sonnet": "claude-3-7-sonnet",
+  "claude-3-5-haiku": "claude-3-5-haiku",
+  "qwen-max": "qwen-max",
+  "glm-4-plus": "glm-4-plus"
+}

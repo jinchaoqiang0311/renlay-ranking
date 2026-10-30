@@ -1,0 +1,100 @@
+{
+  "_meta": {
+    "purpose": "厂商官方价 ground-truth 人工核验样本。仅收录收录站数最多的头部旗舰模型，供 official --verify 与 LiteLLM 派生基准交叉比对、自动标红漂移项。",
+    "how_to_maintain": "厂商常调价：confidence=medium/low 的条目应定期对照厂商定价页复核。发现漂移后修正本文件即视为新的核验结论。",
+    "verified_at_default": "2026-10-18",
+    "currency": "条目默认 USD；国内厂商国内官网 ¥ 档请加 \"currency\": \"cny\" 并直接填 ¥ 数值，核验与折扣会自动换算（市场汇率 RELAY_MARKET_FX，默认 7.2）",
+    "confidence_levels": {
+      "high": "有厂商公开定价直接依据（API 文档/定价页已核）",
+      "medium": "按厂商定价结构推定（缓存命中=输入10%~50%、缓存写入=输入125%），并与同系列兄弟模型横向一致",
+      "low": "仅单一来源，需人工复核"
+    }
+  },
+  "prices": {
+    "gpt-5": {
+      "input": 1.25, "output": 10.0, "cache_read": 0.125,
+      "source": "OpenAI 官方定价页 platform.openai.com/docs/pricing",
+      "confidence": "high"
+    },
+    "gpt-5.5": {
+      "input": 5.0, "output": 30.0, "cache_read": 0.5,
+      "source": "OpenAI 官方定价页（缓存命中=输入10%结构核验一致）",
+      "confidence": "medium"
+    },
+    "gpt-5.6-sol": {
+      "input": 4.0, "output": 20.0, "cache_read": 0.4, "cache_write": 5.0,
+      "source": "OpenAI 官方定价页（注意 azure/us、bedrock_mantle 转售档为 4.4/22，勿混淆）",
+      "confidence": "medium"
+    },
+    "gpt-6-sol": {
+      "input": 2.0, "output": 10.0, "cache_read": 0.2, "cache_write": 2.5,
+      "source": "OpenAI 官方定价页（缓存 10%/125% 结构核验一致）",
+      "confidence": "medium"
+    },
+    "gpt-6-astra": {
+      "input": 10.0, "output": 50.0, "cache_read": 1.0, "cache_write": 12.5,
+      "source": "OpenAI 官方定价页（缓存 10%/125% 结构核验一致）",
+      "confidence": "medium"
+    },
+    "gpt-6.1-sol": {
+      "input": 2.0, "output": 10.0, "cache_read": 0.2, "cache_write": 2.5,
+      "source": "OpenAI 官方定价页（同系列 gpt-6-sol 缓存命中为输入10%；LiteLLM 该条 0.1 即 5% 疑似录入错误）",
+      "confidence": "medium"
+    },
+    "claude-haiku-4-5": {
+      "input": 1.0, "output": 5.0, "cache_read": 0.1, "cache_write": 1.25,
+      "source": "Anthropic 官方定价页 docs.anthropic.com（已核，缓存命中10%/写入125%）",
+      "confidence": "high"
+    },
+    "claude-sonnet-5-5": {
+      "input": 2.0, "output": 10.0, "cache_read": 0.2, "cache_write": 2.5,
+      "source": "Anthropic 官方定价页（Sonnet 档；LiteLLM cache_read 0.1 即 5% 与 Anthropic 惯例不符）",
+      "confidence": "medium"
+    },
+    "claude-opus-5-5": {
+      "input": 4.0, "output": 20.0, "cache_read": 0.4, "cache_write": 5.0,
+      "source": "Anthropic 官方定价页（Opus 档；LiteLLM cache_read 0.2 即 5% 与 Anthropic 惯例不符）",
+      "confidence": "medium"
+    },
+    "claude-opus-4-8": {
+      "input": 5.0, "output": 25.0, "cache_read": 0.5, "cache_write": 6.25,
+      "source": "Anthropic 官方定价页（缓存 10%/125% 结构核验一致）",
+      "confidence": "medium"
+    },
+    "gemini-3-8-flash": {
+      "input": 0.75, "output": 3.75, "cache_read": 0.075,
+      "source": "Google AI 官方定价页 ai.google.dev/gemini-api/docs/pricing（缓存命中10%一致）",
+      "confidence": "medium"
+    },
+    "kimi-k3": {
+      "input": 3.0, "output": 15.0, "cache_read": 0.3,
+      "source": "Moonshot 官方定价页 platform.moonshot.cn（注意 sail/ 档 2.5/12.5 为第三方托管）",
+      "confidence": "medium"
+    },
+    "grok-4-6": {
+      "input": 2.0, "output": 6.0, "cache_read": 0.5,
+      "source": "xAI 官方定价页 docs.x.ai（缓存命中25%为 xAI 惯例）",
+      "confidence": "medium"
+    },
+    "glm-5-3": {
+      "input": 1.4, "output": 4.4, "cache_read": 0.26,
+      "source": "智谱官方定价页 open.bigmodel.cn（注意 coralbricks/ 档 1.12/4.4 为转售价，勿作官方价）",
+      "confidence": "medium"
+    },
+    "glm-5-2": {
+      "input": 1.4, "output": 4.4, "cache_read": 0.26,
+      "source": "智谱官方定价页 open.bigmodel.cn（zai/ 与 tencent/ 等多源一致）",
+      "confidence": "medium"
+    },
+    "deepseek-v4-pro": {
+      "input": 1.32, "output": 3.96, "cache_read": 0.044,
+      "source": "DeepSeek 官方定价页 api-docs.deepseek.com（deepseek/ 前缀为厂商自营；azure_ai 档 1.74/3.48 为转售）",
+      "confidence": "medium"
+    },
+    "deepseek-v3": {
+      "input": 0.27, "output": 1.1, "cache_read": 0.07,
+      "source": "DeepSeek 官方定价页 api-docs.deepseek.com（V3 代：$0.27/$1.10、缓存命中 $0.07 已核；注意新一代 deepseek-chat/V3.2 是 $0.28/$0.42，勿混淆代际）",
+      "confidence": "high"
+    }
+  }
+}

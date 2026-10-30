@@ -1,0 +1,3964 @@
+{
+  "_meta": {
+    "source": "litellm",
+    "url": "https://raw.githubusercontent.com/BerriAI/litellm/main/model_prices_and_context_window.json",
+    "fetched_at": "2026-10-18",
+    "note": "官方价基准（USD / 1M tokens）。source 分级：litellm=社区权威定价库(被数千生产应用用于成本核算)；manual=已与厂商官方页人工核验；getcheapai=第三方聚合佐证(仅供参考，可能非官方直采)。",
+    "cn_updated": "2026-10-27",
+    "cn_note": "¥ 列（国内基准）优先级: 人工核验 > 千问/DeepSeek/GLM 官方网 > 硅基流动/百炼 > 厂商官网 > litellm(×汇率)；$ 列（国际参考）= OpenRouter"
+  },
+  "prices": {
+    "gemini-3-1-flash-image": {
+      "input": 0.5,
+      "output": 3,
+      "cache_read": 0.05,
+      "cache_write": null,
+      "litellm_key": "gemini-3.1-flash-image",
+      "mode": "image_generation",
+      "first_party": true,
+      "source": "litellm",
+      "usd_input": 0.5,
+      "usd_output": 3.0,
+      "usd_source": "openrouter"
+    },
+    "kimi-k2-6": {
+      "input": 6.5,
+      "output": 27.0,
+      "cache_read": 1.1,
+      "currency": "cny",
+      "source": "moonshot",
+      "usd_input": 0.65,
+      "usd_output": 3.41,
+      "usd_source": "openrouter"
+    },
+    "gpt-5-pro": {
+      "input": 15,
+      "output": 120,
+      "cache_read": null,
+      "cache_write": null,
+      "litellm_key": "gpt-5-pro",
+      "mode": "responses",
+      "first_party": true,
+      "source": "litellm",
+      "usd_input": 15.0,
+      "usd_output": 120.0,
+      "usd_source": "openrouter"
+    },
+    "gpt-5-3-codex": {
+      "input": 1.75,
+      "output": 14,
+      "cache_read": 0.175,
+      "cache_write": null,
+      "litellm_key": "gpt-5.3-codex",
+      "mode": "responses",
+      "first_party": true,
+      "source": "litellm",
+      "usd_input": 1.75,
+      "usd_output": 14.0,
+      "usd_source": "openrouter"
+    },
+    "gpt-4o-mini-audio": {
+      "input": 0.15,
+      "output": 0.6,
+      "cache_read": null,
+      "cache_write": null,
+      "litellm_key": "gpt-4o-mini-audio-preview-2024-12-17",
+      "mode": "chat",
+      "first_party": true,
+      "source": "litellm"
+    },
+    "gpt-audio": {
+      "input": 2.5,
+      "output": 10,
+      "cache_read": null,
+      "cache_write": null,
+      "litellm_key": "gpt-audio",
+      "mode": "chat",
+      "first_party": true,
+      "source": "litellm",
+      "usd_input": 2.5,
+      "usd_output": 10.0,
+      "usd_source": "openrouter"
+    },
+    "gpt-5-mini": {
+      "input": 0.25,
+      "output": 2,
+      "cache_read": 0.025,
+      "cache_write": null,
+      "litellm_key": "gpt-5-mini",
+      "mode": "chat",
+      "first_party": true,
+      "source": "litellm",
+      "usd_input": 0.25,
+      "usd_output": 2.0,
+      "usd_source": "openrouter"
+    },
+    "o3-mini": {
+      "input": 1.1,
+      "output": 4.4,
+      "cache_read": 0.55,
+      "cache_write": null,
+      "litellm_key": "o3-mini",
+      "mode": "chat",
+      "first_party": true,
+      "source": "litellm",
+      "usd_input": 1.1,
+      "usd_output": 4.4,
+      "usd_source": "openrouter"
+    },
+    "gemini-3-7-flash": {
+      "input": 0.75,
+      "output": 3.75,
+      "cache_read": 0.075,
+      "cache_write": null,
+      "litellm_key": "gemini-3.7-flash",
+      "mode": "chat",
+      "first_party": true,
+      "source": "litellm",
+      "usd_input": 0.75,
+      "usd_output": 3.75,
+      "usd_source": "openrouter"
+    },
+    "kimi-k2-7-code": {
+      "input": 6.5,
+      "output": 27.0,
+      "cache_read": 1.3,
+      "currency": "cny",
+      "source": "moonshot",
+      "usd_input": 0.56,
+      "usd_output": 3.1,
+      "usd_source": "openrouter"
+    },
+    "gemini-3-8-flash-tts": {
+      "input": 0.5,
+      "output": 9,
+      "cache_read": 0.125,
+      "cache_write": null,
+      "litellm_key": "gemini/gemini-3.8-flash-tts",
+      "mode": "audio_speech",
+      "first_party": true,
+      "source": "litellm"
+    },
+    "gpt-6-sol": {
+      "input": 2,
+      "output": 10,
+      "cache_read": 0.2,
+      "currency": "usd",
+      "source": "manual",
+      "usd_input": 2.0,
+      "usd_output": 10.0,
+      "usd_source": "openrouter"
+    },
+    "deepseek-v4-pro": {
+      "input": 4.5,
+      "output": 13.5,
+      "cache_read": 0.15,
+      "currency": "cny",
+      "source": "deepseek",
+      "usd_input": 1.32,
+      "usd_output": 3.96,
+      "usd_source": "openrouter"
+    },
+    "gemini-flash": {
+      "input": 0,
+      "output": 0,
+      "cache_read": null,
+      "cache_write": null,
+      "litellm_key": "gemini-flash-experimental",
+      "mode": "embedding",
+      "first_party": true,
+      "source": "litellm",
+      "usd_input": 0.75,
+      "usd_output": 3.75,
+      "usd_source": "openrouter"
+    },
+    "qwen-plus": {
+      "input": 0.8,
+      "output": 2.0,
+      "cache_read": 0.16,
+      "currency": "cny",
+      "source": "qwen",
+      "usd_input": 0.26,
+      "usd_output": 0.78,
+      "usd_source": "openrouter"
+    },
+    "gemini-4-argon": {
+      "input": 2,
+      "output": 10,
+      "cache_read": 0.1,
+      "cache_write": null,
+      "litellm_key": "gemini/gemini-4-argon",
+      "mode": "chat",
+      "first_party": true,
+      "source": "litellm",
+      "usd_input": 2.0,
+      "usd_output": 10.0,
+      "usd_source": "openrouter"
+    },
+    "grok-4-20-reasoning": {
+      "input": 1.25,
+      "output": 2.5,
+      "cache_read": 0.2,
+      "cache_write": null,
+      "litellm_key": "xai/grok-4.20-reasoning",
+      "mode": "chat",
+      "first_party": true,
+      "source": "litellm"
+    },
+    "gpt-4o-audio": {
+      "input": 2.5,
+      "output": 10,
+      "cache_read": null,
+      "cache_write": null,
+      "litellm_key": "gpt-4o-audio-preview-2024-12-17",
+      "mode": "chat",
+      "first_party": true,
+      "source": "litellm"
+    },
+    "gpt-4o-mini-tts": {
+      "input": 0.6,
+      "output": 10,
+      "cache_read": null,
+      "cache_write": null,
+      "litellm_key": "gpt-4o-mini-tts",
+      "mode": "audio_speech",
+      "first_party": true,
+      "source": "litellm"
+    },
+    "o4-mini-deep-research": {
+      "input": 2,
+      "output": 8,
+      "cache_read": 0.5,
+      "cache_write": null,
+      "litellm_key": "o4-mini-deep-research",
+      "mode": "responses",
+      "first_party": true,
+      "source": "litellm"
+    },
+    "deepseek-v3": {
+      "input": 2.0,
+      "output": 8.0,
+      "cache_read": 0.8,
+      "currency": "cny",
+      "source": "qwen",
+      "usd_input": 0.2574,
+      "usd_output": 1.0287,
+      "usd_source": "openrouter"
+    },
+    "gpt-4o-mini-transcribe": {
+      "input": 1.25,
+      "output": 5,
+      "cache_read": null,
+      "cache_write": null,
+      "litellm_key": "gpt-4o-mini-transcribe",
+      "mode": "audio_transcription",
+      "first_party": true,
+      "source": "litellm"
+    },
+    "gemini-3-5-flash": {
+      "input": 1.5,
+      "output": 9,
+      "cache_read": 0.15,
+      "cache_write": null,
+      "litellm_key": "gemini-3.5-flash",
+      "mode": "chat",
+      "first_party": true,
+      "source": "litellm",
+      "usd_input": 1.5,
+      "usd_output": 9.0,
+      "usd_source": "openrouter"
+    },
+    "gpt-4o-transcribe": {
+      "input": 2.5,
+      "output": 10,
+      "cache_read": null,
+      "cache_write": null,
+      "litellm_key": "gpt-4o-transcribe",
+      "mode": "audio_transcription",
+      "first_party": true,
+      "source": "litellm"
+    },
+    "gemini-nano-banana-2-1": {
+      "input": 1.5,
+      "output": 7.5,
+      "cache_read": 0.15,
+      "cache_write": null,
+      "litellm_key": "gemini-nano-banana-2.1",
+      "mode": "image_generation",
+      "first_party": true,
+      "source": "litellm",
+      "usd_input": 1.5,
+      "usd_output": 7.5,
+      "usd_source": "openrouter"
+    },
+    "gpt-6-astra": {
+      "input": 10,
+      "output": 50,
+      "cache_read": 1,
+      "currency": "usd",
+      "source": "manual",
+      "usd_input": 10.0,
+      "usd_output": 50.0,
+      "usd_source": "openrouter"
+    },
+    "glm-4-5-air": {
+      "input": 0.8,
+      "output": 2.0,
+      "cache_read": 0.16,
+      "currency": "cny",
+      "source": "bigmodel",
+      "usd_input": 0.13,
+      "usd_output": 0.85,
+      "usd_source": "openrouter"
+    },
+    "o3-pro": {
+      "input": 20,
+      "output": 80,
+      "cache_read": null,
+      "cache_write": null,
+      "litellm_key": "o3-pro",
+      "mode": "responses",
+      "first_party": true,
+      "source": "litellm",
+      "usd_input": 20.0,
+      "usd_output": 80.0,
+      "usd_source": "openrouter"
+    },
+    "glm-5-3": {
+      "input": 8.0,
+      "output": 28.0,
+      "cache_read": 2.0,
+      "currency": "cny",
+      "source": "bigmodel",
+      "usd_input": 0.0699,
+      "usd_output": 1.4,
+      "usd_source": "openrouter"
+    },
+    "gpt-6-luna": {
+      "input": 0.1,
+      "output": 0.5,
+      "cache_read": 0.01,
+      "cache_write": 0.125,
+      "litellm_key": "gpt-6-luna",
+      "mode": "chat",
+      "first_party": true,
+      "source": "litellm",
+      "usd_input": 0.1,
+      "usd_output": 0.5,
+      "usd_source": "openrouter"
+    },
+    "gemini-embedding-001": {
+      "input": 0.15,
+      "output": 0,
+      "cache_read": null,
+      "cache_write": null,
+      "litellm_key": "gemini-embedding-001",
+      "mode": "embedding",
+      "first_party": true,
+      "source": "litellm"
+    },
+    "gemini-3-1-flash-lite": {
+      "input": 0.25,
+      "output": 1.5,
+      "cache_read": 0.025,
+      "cache_write": null,
+      "litellm_key": "gemini-3.1-flash-lite-preview",
+      "mode": "chat",
+      "first_party": true,
+      "source": "litellm",
+      "usd_input": 0.25,
+      "usd_output": 1.5,
+      "usd_source": "openrouter"
+    },
+    "gpt-5-chat": {
+      "input": 1.25,
+      "output": 10,
+      "cache_read": 0.125,
+      "cache_write": null,
+      "litellm_key": "gpt-5-chat",
+      "mode": "chat",
+      "first_party": true,
+      "source": "litellm"
+    },
+    "gpt-5-5-pro": {
+      "input": 30,
+      "output": 180,
+      "cache_read": null,
+      "cache_write": null,
+      "litellm_key": "gpt-5.5-pro",
+      "mode": "responses",
+      "first_party": true,
+      "source": "litellm",
+      "usd_input": 30.0,
+      "usd_output": 180.0,
+      "usd_source": "openrouter"
+    },
+    "claude-opus-5": {
+      "input": 5,
+      "output": 25,
+      "cache_read": 0.5,
+      "cache_write": 6.25,
+      "litellm_key": "claude-opus-5",
+      "mode": "chat",
+      "first_party": true,
+      "source": "litellm",
+      "usd_input": 5.0,
+      "usd_output": 25.0,
+      "usd_source": "openrouter"
+    },
+    "grok-4-6": {
+      "input": 2,
+      "output": 6,
+      "cache_read": 0.5,
+      "currency": "usd",
+      "source": "manual",
+      "usd_input": 2.0,
+      "usd_output": 6.0,
+      "usd_source": "openrouter"
+    },
+    "qwen-max": {
+      "input": 2.4,
+      "output": 9.6,
+      "cache_read": 0.48,
+      "currency": "cny",
+      "source": "qwen"
+    },
+    "gpt-4": {
+      "input": 30,
+      "output": 60,
+      "cache_read": null,
+      "cache_write": null,
+      "litellm_key": "gpt-4",
+      "mode": "chat",
+      "first_party": true,
+      "source": "litellm",
+      "usd_input": 30.0,
+      "usd_output": 60.0,
+      "usd_source": "openrouter"
+    },
+    "claude-opus-4-8": {
+      "input": 5,
+      "output": 25,
+      "cache_read": 0.5,
+      "currency": "usd",
+      "source": "manual",
+      "usd_input": 5.0,
+      "usd_output": 25.0,
+      "usd_source": "openrouter"
+    },
+    "gpt-5-1": {
+      "input": 1.25,
+      "output": 10,
+      "cache_read": 0.125,
+      "cache_write": null,
+      "litellm_key": "gpt-5.1",
+      "mode": "chat",
+      "first_party": true,
+      "source": "litellm",
+      "usd_input": 1.25,
+      "usd_output": 10.0,
+      "usd_source": "openrouter"
+    },
+    "gpt-5-6-terra": {
+      "input": 2,
+      "output": 12,
+      "cache_read": 0.2,
+      "cache_write": 2.5,
+      "litellm_key": "gpt-5.6-terra",
+      "mode": "chat",
+      "first_party": true,
+      "source": "litellm",
+      "usd_input": 2.0,
+      "usd_output": 12.0,
+      "usd_source": "openrouter"
+    },
+    "gemini-3-flash": {
+      "input": 0.5,
+      "output": 3,
+      "cache_read": 0.05,
+      "cache_write": null,
+      "litellm_key": "gemini-3-flash-preview",
+      "mode": "chat",
+      "first_party": true,
+      "source": "litellm",
+      "usd_input": 0.5,
+      "usd_output": 3.0,
+      "usd_source": "openrouter"
+    },
+    "gemini-3-5-flash-lite": {
+      "input": 0.3,
+      "output": 2.5,
+      "cache_read": 0.03,
+      "cache_write": null,
+      "litellm_key": "gemini-3.5-flash-lite",
+      "mode": "chat",
+      "first_party": true,
+      "source": "litellm",
+      "usd_input": 0.3,
+      "usd_output": 2.5,
+      "usd_source": "openrouter"
+    },
+    "gpt-5-4-nano": {
+      "input": 0.2,
+      "output": 1.25,
+      "cache_read": 0.02,
+      "cache_write": null,
+      "litellm_key": "gpt-5.4-nano",
+      "mode": "chat",
+      "first_party": true,
+      "source": "litellm",
+      "usd_input": 0.2,
+      "usd_output": 1.25,
+      "usd_source": "openrouter"
+    },
+    "o4-mini": {
+      "input": 1.1,
+      "output": 4.4,
+      "cache_read": 0.275,
+      "cache_write": null,
+      "litellm_key": "o4-mini",
+      "mode": "chat",
+      "first_party": true,
+      "source": "litellm",
+      "usd_input": 1.1,
+      "usd_output": 4.4,
+      "usd_source": "openrouter"
+    },
+    "gemini-embedding-2": {
+      "input": 0.2,
+      "output": 0,
+      "cache_read": null,
+      "cache_write": null,
+      "litellm_key": "gemini-embedding-2-preview",
+      "mode": "embedding",
+      "first_party": true,
+      "source": "litellm"
+    },
+    "gpt-5-1-codex": {
+      "input": 1.25,
+      "output": 10,
+      "cache_read": 0.125,
+      "cache_write": null,
+      "litellm_key": "gpt-5.1-codex",
+      "mode": "responses",
+      "first_party": true,
+      "source": "litellm",
+      "usd_input": 1.25,
+      "usd_output": 10.0,
+      "usd_source": "openrouter"
+    },
+    "claude-fable-5": {
+      "input": 10,
+      "output": 50,
+      "cache_read": 1,
+      "cache_write": 12.5,
+      "litellm_key": "claude-fable-5",
+      "mode": "chat",
+      "first_party": true,
+      "source": "litellm",
+      "usd_input": 10.0,
+      "usd_output": 50.0,
+      "usd_source": "openrouter"
+    },
+    "gpt-4-turbo": {
+      "input": 10,
+      "output": 30,
+      "cache_read": null,
+      "cache_write": null,
+      "litellm_key": "gpt-4-turbo",
+      "mode": "chat",
+      "first_party": true,
+      "source": "litellm",
+      "usd_input": 10.0,
+      "usd_output": 30.0,
+      "usd_source": "openrouter"
+    },
+    "gemini-3-1-pro": {
+      "input": 2,
+      "output": 12,
+      "cache_read": 0.2,
+      "cache_write": null,
+      "litellm_key": "gemini-3.1-pro-preview",
+      "mode": "chat",
+      "first_party": true,
+      "source": "litellm",
+      "usd_input": 2.0,
+      "usd_output": 12.0,
+      "usd_source": "openrouter"
+    },
+    "glm-5-1": {
+      "input": 6.0,
+      "output": 24.0,
+      "cache_read": 1.3,
+      "currency": "cny",
+      "source": "bigmodel",
+      "usd_input": 0.966,
+      "usd_output": 3.036,
+      "usd_source": "openrouter"
+    },
+    "gpt-image-1-5": {
+      "input": 5,
+      "output": 10,
+      "cache_read": 1.25,
+      "cache_write": null,
+      "litellm_key": "gpt-image-1.5",
+      "mode": "image_generation",
+      "first_party": true,
+      "source": "litellm"
+    },
+    "claude-sonnet-5-5": {
+      "input": 2,
+      "output": 10,
+      "cache_read": 0.2,
+      "currency": "usd",
+      "source": "manual",
+      "usd_input": 2.0,
+      "usd_output": 10.0,
+      "usd_source": "openrouter"
+    },
+    "gpt-5": {
+      "input": 1.25,
+      "output": 10,
+      "cache_read": 0.125,
+      "currency": "usd",
+      "source": "manual",
+      "usd_input": 1.25,
+      "usd_output": 10.0,
+      "usd_source": "openrouter"
+    },
+    "glm-4-5": {
+      "input": 0.6,
+      "output": 2.2,
+      "cache_read": null,
+      "cache_write": null,
+      "litellm_key": "zai/glm-4.5",
+      "mode": "chat",
+      "first_party": true,
+      "source": "litellm",
+      "usd_input": 0.6,
+      "usd_output": 2.2,
+      "usd_source": "openrouter"
+    },
+    "claude-sonnet-5": {
+      "input": 2,
+      "output": 10,
+      "cache_read": 0.2,
+      "cache_write": 2.5,
+      "litellm_key": "claude-sonnet-5",
+      "mode": "chat",
+      "first_party": true,
+      "source": "litellm",
+      "usd_input": 2.0,
+      "usd_output": 10.0,
+      "usd_source": "openrouter"
+    },
+    "gpt-4-1": {
+      "input": 2,
+      "output": 8,
+      "cache_read": 0.5,
+      "cache_write": null,
+      "litellm_key": "gpt-4.1",
+      "mode": "chat",
+      "first_party": true,
+      "source": "litellm",
+      "usd_input": 2.0,
+      "usd_output": 8.0,
+      "usd_source": "openrouter"
+    },
+    "rerank-english-v3-0": {
+      "input": 0,
+      "output": 0,
+      "cache_read": null,
+      "cache_write": null,
+      "litellm_key": "rerank-english-v3.0",
+      "mode": "rerank",
+      "first_party": true,
+      "source": "litellm"
+    },
+    "o3": {
+      "input": 2,
+      "output": 8,
+      "cache_read": 0.5,
+      "cache_write": null,
+      "litellm_key": "o3",
+      "mode": "chat",
+      "first_party": true,
+      "source": "litellm",
+      "usd_input": 2.0,
+      "usd_output": 8.0,
+      "usd_source": "openrouter"
+    },
+    "gpt-5-2": {
+      "input": 1.75,
+      "output": 14,
+      "cache_read": 0.175,
+      "cache_write": null,
+      "litellm_key": "gpt-5.2",
+      "mode": "chat",
+      "first_party": true,
+      "source": "litellm",
+      "usd_input": 1.75,
+      "usd_output": 14.0,
+      "usd_source": "openrouter"
+    },
+    "claude-fable-5-1": {
+      "input": 10,
+      "output": 50,
+      "cache_read": 0.25,
+      "cache_write": 12.5,
+      "litellm_key": "claude-fable-5-1",
+      "mode": "chat",
+      "first_party": true,
+      "source": "litellm",
+      "usd_input": 10.0,
+      "usd_output": 50.0,
+      "usd_source": "openrouter"
+    },
+    "deepseek-r1": {
+      "input": 4.0,
+      "output": 16.0,
+      "cache_read": 1.6,
+      "currency": "cny",
+      "source": "qwen",
+      "usd_input": 0.5,
+      "usd_output": 2.15,
+      "usd_source": "openrouter"
+    },
+    "gpt-5-nano": {
+      "input": 0.05,
+      "output": 0.4,
+      "cache_read": 0.005,
+      "cache_write": null,
+      "litellm_key": "gpt-5-nano",
+      "mode": "chat",
+      "first_party": true,
+      "source": "litellm",
+      "usd_input": 0.05,
+      "usd_output": 0.4,
+      "usd_source": "openrouter"
+    },
+    "glm-5-2": {
+      "input": 8.0,
+      "output": 28.0,
+      "cache_read": 2.0,
+      "currency": "cny",
+      "source": "bigmodel",
+      "usd_input": 0.0341,
+      "usd_output": 7.0,
+      "usd_source": "openrouter"
+    },
+    "claude-sonnet-4-6": {
+      "input": 3,
+      "output": 15,
+      "cache_read": 0.3,
+      "cache_write": 3.75,
+      "litellm_key": "claude-sonnet-4-6",
+      "mode": "chat",
+      "first_party": true,
+      "source": "litellm",
+      "usd_input": 3.0,
+      "usd_output": 15.0,
+      "usd_source": "openrouter"
+    },
+    "glm-5-3-flash": {
+      "input": 0.8,
+      "output": 2.8,
+      "cache_read": 0.23,
+      "currency": "cny",
+      "source": "bigmodel",
+      "usd_input": 0.047529,
+      "usd_output": 0.1,
+      "usd_source": "openrouter"
+    },
+    "gpt-4o": {
+      "input": 2.5,
+      "output": 10,
+      "cache_read": 1.25,
+      "cache_write": null,
+      "litellm_key": "gpt-4o",
+      "mode": "chat",
+      "first_party": true,
+      "source": "litellm",
+      "usd_input": 2.5,
+      "usd_output": 10.0,
+      "usd_source": "openrouter"
+    },
+    "o3-deep-research": {
+      "input": 10,
+      "output": 40,
+      "cache_read": 2.5,
+      "cache_write": null,
+      "litellm_key": "o3-deep-research",
+      "mode": "responses",
+      "first_party": true,
+      "source": "litellm"
+    },
+    "o1-pro": {
+      "input": 150,
+      "output": 600,
+      "cache_read": null,
+      "cache_write": null,
+      "litellm_key": "o1-pro",
+      "mode": "responses",
+      "first_party": true,
+      "source": "litellm",
+      "usd_input": 150.0,
+      "usd_output": 600.0,
+      "usd_source": "openrouter"
+    },
+    "rerank-multilingual-v3-0": {
+      "input": 0,
+      "output": 0,
+      "cache_read": null,
+      "cache_write": null,
+      "litellm_key": "rerank-multilingual-v3.0",
+      "mode": "rerank",
+      "first_party": true,
+      "source": "litellm"
+    },
+    "gpt-4-1-mini": {
+      "input": 0.4,
+      "output": 1.6,
+      "cache_read": 0.1,
+      "cache_write": null,
+      "litellm_key": "gpt-4.1-mini",
+      "mode": "chat",
+      "first_party": true,
+      "source": "litellm",
+      "usd_input": 0.4,
+      "usd_output": 1.6,
+      "usd_source": "openrouter"
+    },
+    "grok-4-5": {
+      "input": 2,
+      "output": 6,
+      "cache_read": 0.3,
+      "cache_write": null,
+      "litellm_key": "xai/grok-4.5",
+      "mode": "chat",
+      "first_party": true,
+      "source": "litellm",
+      "usd_input": 2.0,
+      "usd_output": 6.0,
+      "usd_source": "openrouter"
+    },
+    "gpt-5-2-codex": {
+      "input": 1.75,
+      "output": 14,
+      "cache_read": 0.175,
+      "cache_write": null,
+      "litellm_key": "gpt-5.2-codex",
+      "mode": "responses",
+      "first_party": true,
+      "source": "litellm",
+      "usd_input": 1.75,
+      "usd_output": 14.0,
+      "usd_source": "openrouter"
+    },
+    "gemini-3-8-flash": {
+      "input": 0.75,
+      "output": 3.75,
+      "cache_read": 0.075,
+      "currency": "usd",
+      "source": "manual",
+      "usd_input": 0.825,
+      "usd_output": 4.125,
+      "usd_source": "openrouter"
+    },
+    "deepseek-flash": {
+      "input": 1.0,
+      "output": 4.0,
+      "cache_read": 0.02,
+      "currency": "cny",
+      "source": "deepseek",
+      "usd_input": 0.02,
+      "usd_output": 1.0,
+      "usd_source": "openrouter"
+    },
+    "glm-4-7": {
+      "input": 2.0,
+      "output": 8.0,
+      "cache_read": 0.4,
+      "currency": "cny",
+      "source": "bigmodel",
+      "usd_input": 0.54,
+      "usd_output": 1.98,
+      "usd_source": "openrouter"
+    },
+    "grok-4-7": {
+      "input": 2,
+      "output": 6,
+      "cache_read": 0.5,
+      "cache_write": null,
+      "litellm_key": "xai/grok-4.7",
+      "mode": "chat",
+      "first_party": true,
+      "source": "litellm",
+      "usd_input": 2.0,
+      "usd_output": 6.0,
+      "usd_source": "openrouter"
+    },
+    "rerank-v4-0-pro": {
+      "input": 0,
+      "output": 0,
+      "cache_read": null,
+      "cache_write": null,
+      "litellm_key": "rerank-v4.0-pro",
+      "mode": "rerank",
+      "first_party": true,
+      "source": "litellm"
+    },
+    "gemini-3-6-flash": {
+      "input": 0.75,
+      "output": 3.75,
+      "cache_read": 0.075,
+      "cache_write": null,
+      "litellm_key": "gemini-3.6-flash",
+      "mode": "chat",
+      "first_party": true,
+      "source": "litellm",
+      "usd_input": 0.75,
+      "usd_output": 3.75,
+      "usd_source": "openrouter"
+    },
+    "gpt-5-6-sol": {
+      "input": 4,
+      "output": 20,
+      "cache_read": 0.4,
+      "currency": "usd",
+      "source": "manual",
+      "usd_input": 4.0,
+      "usd_output": 20.0,
+      "usd_source": "openrouter"
+    },
+    "glm-5": {
+      "input": 4.0,
+      "output": 18.0,
+      "cache_read": 1.0,
+      "currency": "cny",
+      "source": "bigmodel",
+      "usd_input": 1.0,
+      "usd_output": 3.2,
+      "usd_source": "openrouter"
+    },
+    "gpt-5-search-api": {
+      "input": 1.25,
+      "output": 10,
+      "cache_read": 0.125,
+      "cache_write": null,
+      "litellm_key": "gpt-5-search-api",
+      "mode": "chat",
+      "first_party": true,
+      "source": "litellm"
+    },
+    "gpt-6-1-sol": {
+      "input": 2,
+      "output": 10,
+      "cache_read": 0.2,
+      "currency": "usd",
+      "source": "manual",
+      "usd_input": 2.0,
+      "usd_output": 10.0,
+      "usd_source": "openrouter"
+    },
+    "gpt-5-4-pro": {
+      "input": 30,
+      "output": 180,
+      "cache_read": null,
+      "cache_write": null,
+      "litellm_key": "gpt-5.4-pro",
+      "mode": "responses",
+      "first_party": true,
+      "source": "litellm",
+      "usd_input": 30.0,
+      "usd_output": 180.0,
+      "usd_source": "openrouter"
+    },
+    "claude-opus-5-5": {
+      "input": 4,
+      "output": 20,
+      "cache_read": 0.4,
+      "currency": "usd",
+      "source": "manual",
+      "usd_input": 4.0,
+      "usd_output": 20.0,
+      "usd_source": "openrouter"
+    },
+    "gemini-2-5-flash-preview-tts": {
+      "input": 0.5,
+      "output": 10,
+      "cache_read": null,
+      "cache_write": null,
+      "litellm_key": "gemini-2.5-flash-preview-tts",
+      "mode": "audio_speech",
+      "first_party": true,
+      "source": "litellm"
+    },
+    "gpt-4o-mini": {
+      "input": 0.15,
+      "output": 0.6,
+      "cache_read": 0.075,
+      "cache_write": null,
+      "litellm_key": "gpt-4o-mini",
+      "mode": "chat",
+      "first_party": true,
+      "source": "litellm",
+      "usd_input": 0.15,
+      "usd_output": 0.6,
+      "usd_source": "openrouter"
+    },
+    "deepseek-v3-2": {
+      "input": 4.0,
+      "output": 6.0,
+      "cache_read": null,
+      "currency": "cny",
+      "source": "siliconflow",
+      "usd_input": 0.28,
+      "usd_output": 0.42,
+      "usd_source": "openrouter"
+    },
+    "gpt-5-6": {
+      "input": 4,
+      "output": 20,
+      "cache_read": 0.4,
+      "cache_write": 5,
+      "litellm_key": "gpt-5.6",
+      "mode": "chat",
+      "first_party": true,
+      "source": "litellm"
+    },
+    "gemini-3-1-flash-tts": {
+      "input": 1,
+      "output": 20,
+      "cache_read": null,
+      "cache_write": null,
+      "litellm_key": "gemini/gemini-3.1-flash-tts-preview",
+      "mode": "audio_speech",
+      "first_party": true,
+      "source": "litellm"
+    },
+    "gemini-3-1-flash-lite-image": {
+      "input": 0.25,
+      "output": 1.5,
+      "cache_read": 0.025,
+      "cache_write": null,
+      "litellm_key": "gemini-3.1-flash-lite-image",
+      "mode": "image_generation",
+      "first_party": true,
+      "source": "litellm",
+      "usd_input": 0.25,
+      "usd_output": 1.5,
+      "usd_source": "openrouter"
+    },
+    "gpt-5-6-luna": {
+      "input": 0.2,
+      "output": 1.2,
+      "cache_read": 0.02,
+      "cache_write": 0.25,
+      "litellm_key": "gpt-5.6-luna",
+      "mode": "chat",
+      "first_party": true,
+      "source": "litellm",
+      "usd_input": 0.2,
+      "usd_output": 1.2,
+      "usd_source": "openrouter"
+    },
+    "claude-haiku-5-5": {
+      "input": 0.1,
+      "output": 0.5,
+      "cache_read": 0.01,
+      "cache_write": 0.125,
+      "litellm_key": "claude-haiku-5-5",
+      "mode": "chat",
+      "first_party": true,
+      "source": "litellm",
+      "usd_input": 0.1,
+      "usd_output": 0.5,
+      "usd_source": "openrouter"
+    },
+    "gemini-2-5-pro": {
+      "input": 1.25,
+      "output": 10,
+      "cache_read": 0.125,
+      "cache_write": null,
+      "litellm_key": "gemini-2.5-pro",
+      "mode": "chat",
+      "first_party": true,
+      "source": "litellm",
+      "usd_input": 1.25,
+      "usd_output": 10.0,
+      "usd_source": "openrouter"
+    },
+    "gpt-5-5": {
+      "input": 5,
+      "output": 30,
+      "cache_read": 0.5,
+      "currency": "usd",
+      "source": "manual",
+      "usd_input": 5.0,
+      "usd_output": 30.0,
+      "usd_source": "openrouter"
+    },
+    "gemini-2-5-flash": {
+      "input": 0.3,
+      "output": 2.5,
+      "cache_read": 0.03,
+      "cache_write": null,
+      "litellm_key": "gemini-2.5-flash",
+      "mode": "chat",
+      "first_party": true,
+      "source": "litellm",
+      "usd_input": 0.3,
+      "usd_output": 2.5,
+      "usd_source": "openrouter"
+    },
+    "gemini-3-pro-image": {
+      "input": 2,
+      "output": 12,
+      "cache_read": 0.2,
+      "cache_write": null,
+      "litellm_key": "gemini-3-pro-image",
+      "mode": "image_generation",
+      "first_party": true,
+      "source": "litellm",
+      "usd_input": 2.0,
+      "usd_output": 12.0,
+      "usd_source": "openrouter"
+    },
+    "grok-build-0-1": {
+      "input": 1,
+      "output": 2,
+      "cache_read": 0.2,
+      "cache_write": null,
+      "litellm_key": "xai/grok-build-0.1",
+      "mode": "chat",
+      "first_party": true,
+      "source": "litellm",
+      "usd_input": 1.0,
+      "usd_output": 2.0,
+      "usd_source": "openrouter"
+    },
+    "grok-4-20-non-reasoning": {
+      "input": 1.25,
+      "output": 2.5,
+      "cache_read": 0.2,
+      "cache_write": null,
+      "litellm_key": "xai/grok-4.20-non-reasoning",
+      "mode": "chat",
+      "first_party": true,
+      "source": "litellm"
+    },
+    "deepseek-v4-flash": {
+      "input": 1.5,
+      "output": 4.5,
+      "cache_read": null,
+      "currency": "cny",
+      "source": "siliconflow",
+      "usd_input": 0.0475,
+      "usd_output": 0.1568,
+      "usd_source": "openrouter"
+    },
+    "gemini-2-5-flash-lite": {
+      "input": 0.1,
+      "output": 0.4,
+      "cache_read": 0.01,
+      "cache_write": null,
+      "litellm_key": "gemini-2.5-flash-lite",
+      "mode": "chat",
+      "first_party": true,
+      "source": "litellm",
+      "usd_input": 0.1,
+      "usd_output": 0.4,
+      "usd_source": "openrouter"
+    },
+    "claude-sonnet-4-5": {
+      "input": 3,
+      "output": 15,
+      "cache_read": 0.3,
+      "cache_write": 3.75,
+      "litellm_key": "claude-sonnet-4-5",
+      "mode": "chat",
+      "first_party": true,
+      "source": "litellm",
+      "usd_input": 3.0,
+      "usd_output": 15.0,
+      "usd_source": "openrouter"
+    },
+    "gemini-2-5-flash-image": {
+      "input": 0.3,
+      "output": 2.5,
+      "cache_read": null,
+      "cache_write": null,
+      "litellm_key": "gemini-2.5-flash-image",
+      "mode": "image_generation",
+      "first_party": true,
+      "source": "litellm",
+      "usd_input": 0.3,
+      "usd_output": 2.5,
+      "usd_source": "openrouter"
+    },
+    "gpt-4-1-nano": {
+      "input": 0.1,
+      "output": 0.4,
+      "cache_read": 0.025,
+      "cache_write": null,
+      "litellm_key": "gpt-4.1-nano",
+      "mode": "chat",
+      "first_party": true,
+      "source": "litellm",
+      "usd_input": 0.1,
+      "usd_output": 0.4,
+      "usd_source": "openrouter"
+    },
+    "gpt-5-4": {
+      "input": 2.5,
+      "output": 15,
+      "cache_read": 0.25,
+      "cache_write": null,
+      "litellm_key": "gpt-5.4",
+      "mode": "chat",
+      "first_party": true,
+      "source": "litellm",
+      "usd_input": 2.5,
+      "usd_output": 15.0,
+      "usd_source": "openrouter"
+    },
+    "o1": {
+      "input": 15,
+      "output": 60,
+      "cache_read": 7.5,
+      "cache_write": null,
+      "litellm_key": "o1",
+      "mode": "chat",
+      "first_party": true,
+      "source": "litellm",
+      "usd_input": 15.0,
+      "usd_output": 60.0,
+      "usd_source": "openrouter"
+    },
+    "gpt-5-codex": {
+      "input": 1.25,
+      "output": 10,
+      "cache_read": 0.125,
+      "cache_write": null,
+      "litellm_key": "gpt-5-codex",
+      "mode": "responses",
+      "first_party": true,
+      "source": "litellm"
+    },
+    "grok-4-3": {
+      "input": 1.25,
+      "output": 2.5,
+      "cache_read": 0.2,
+      "cache_write": null,
+      "litellm_key": "xai/grok-4.3",
+      "mode": "chat",
+      "first_party": true,
+      "source": "litellm",
+      "usd_input": 1.25,
+      "usd_output": 2.5,
+      "usd_source": "openrouter"
+    },
+    "glm-4-6": {
+      "input": 0.6,
+      "output": 2.2,
+      "cache_read": 0.11,
+      "cache_write": 0,
+      "litellm_key": "zai/glm-4.6",
+      "mode": "chat",
+      "first_party": true,
+      "source": "litellm",
+      "usd_input": 0.55,
+      "usd_output": 2.2,
+      "usd_source": "openrouter"
+    },
+    "claude-haiku-4-5": {
+      "input": 1,
+      "output": 5,
+      "cache_read": 0.1,
+      "currency": "usd",
+      "source": "manual",
+      "usd_input": 1.0,
+      "usd_output": 5.0,
+      "usd_source": "openrouter"
+    },
+    "gpt-3-5-turbo": {
+      "input": 0.5,
+      "output": 1.5,
+      "cache_read": null,
+      "cache_write": null,
+      "litellm_key": "gpt-3.5-turbo",
+      "mode": "chat",
+      "first_party": true,
+      "source": "litellm",
+      "usd_input": 1.0,
+      "usd_output": 2.0,
+      "usd_source": "openrouter"
+    },
+    "claude-opus-4-5": {
+      "input": 5,
+      "output": 25,
+      "cache_read": 0.5,
+      "cache_write": 6.25,
+      "litellm_key": "claude-opus-4-5-20251101",
+      "mode": "chat",
+      "first_party": true,
+      "source": "litellm",
+      "usd_input": 5.0,
+      "usd_output": 25.0,
+      "usd_source": "openrouter"
+    },
+    "gemini-2-5-pro-preview-tts": {
+      "input": 1,
+      "output": 20,
+      "cache_read": 0.125,
+      "cache_write": null,
+      "litellm_key": "gemini-2.5-pro-preview-tts",
+      "mode": "chat",
+      "first_party": true,
+      "source": "litellm"
+    },
+    "deepseek-v4-flash-vision": {
+      "input": 0.3,
+      "output": 1.2,
+      "cache_read": 0.006,
+      "cache_write": 0,
+      "litellm_key": "deepseek-v4-flash-vision-exp",
+      "mode": "chat",
+      "first_party": true,
+      "source": "litellm",
+      "usd_input": 0.2156,
+      "usd_output": 0.6468,
+      "usd_source": "openrouter"
+    },
+    "kimi-k3": {
+      "input": 20.0,
+      "output": 100.0,
+      "cache_read": 2.0,
+      "currency": "cny",
+      "source": "qwen",
+      "usd_input": 0.169,
+      "usd_output": 20.0,
+      "usd_source": "openrouter"
+    },
+    "gpt-5-2-pro": {
+      "input": 21,
+      "output": 168,
+      "cache_read": null,
+      "cache_write": null,
+      "litellm_key": "gpt-5.2-pro",
+      "mode": "responses",
+      "first_party": true,
+      "source": "litellm",
+      "usd_input": 21.0,
+      "usd_output": 168.0,
+      "usd_source": "openrouter"
+    },
+    "qwen-turbo": {
+      "input": 0.05,
+      "output": 0.2,
+      "cache_read": null,
+      "cache_write": null,
+      "litellm_key": "dashscope/qwen-turbo",
+      "mode": "chat",
+      "first_party": true,
+      "source": "litellm"
+    },
+    "gpt-5-1-codex-mini": {
+      "input": 0.25,
+      "output": 2,
+      "cache_read": 0.025,
+      "cache_write": null,
+      "litellm_key": "gpt-5.1-codex-mini",
+      "mode": "responses",
+      "first_party": true,
+      "source": "litellm",
+      "usd_input": 0.25,
+      "usd_output": 2.0,
+      "usd_source": "openrouter"
+    },
+    "gpt-5-4-mini": {
+      "input": 0.75,
+      "output": 4.5,
+      "cache_read": 0.075,
+      "cache_write": null,
+      "litellm_key": "gpt-5.4-mini",
+      "mode": "chat",
+      "first_party": true,
+      "source": "litellm",
+      "usd_input": 0.75,
+      "usd_output": 4.5,
+      "usd_source": "openrouter"
+    },
+    "kimi-k2-5": {
+      "input": 4.0,
+      "output": 21.0,
+      "cache_read": 0.8,
+      "currency": "cny",
+      "source": "qwen",
+      "usd_input": 0.5,
+      "usd_output": 2.5,
+      "usd_source": "openrouter"
+    },
+    "claude-opus-4-7": {
+      "input": 5,
+      "output": 25,
+      "cache_read": 0.5,
+      "cache_write": 6.25,
+      "litellm_key": "claude-opus-4-7",
+      "mode": "chat",
+      "first_party": true,
+      "source": "litellm",
+      "usd_input": 5.0,
+      "usd_output": 25.0,
+      "usd_source": "openrouter"
+    },
+    "claude-opus-4-6": {
+      "input": 5,
+      "output": 25,
+      "cache_read": 0.5,
+      "cache_write": 6.25,
+      "litellm_key": "claude-opus-4-6",
+      "mode": "chat",
+      "first_party": true,
+      "source": "litellm",
+      "usd_input": 5.0,
+      "usd_output": 25.0,
+      "usd_source": "openrouter"
+    },
+    "deepseek-v4-1-flash": {
+      "input": 1.0,
+      "output": 4.0,
+      "cache_read": 0.02,
+      "currency": "cny",
+      "source": "deepseek",
+      "usd_input": 0.3,
+      "usd_output": 1.2,
+      "usd_source": "openrouter"
+    },
+    "mimo-v2-6-pro-ultraspeed": {
+      "input": 30.0,
+      "output": 60.0,
+      "cache_read": 0.25,
+      "currency": "cny",
+      "source": "bailian",
+      "usd_input": 4.35,
+      "usd_output": 8.7,
+      "usd_source": "openrouter"
+    },
+    "mimo-v2-6-flash": {
+      "input": 0.14,
+      "output": 0.28,
+      "currency": "usd",
+      "source": "openrouter",
+      "usd_input": 0.14,
+      "usd_output": 0.28,
+      "usd_source": "openrouter"
+    },
+    "mimo-v2-6-pro": {
+      "input": 0.435,
+      "output": 0.87,
+      "currency": "usd",
+      "source": "openrouter",
+      "usd_input": 0.435,
+      "usd_output": 0.87,
+      "usd_source": "openrouter"
+    },
+    "glm-5-3-flashx": {
+      "input": 2.0,
+      "output": 7.0,
+      "cache_read": 0.57,
+      "currency": "cny",
+      "source": "bigmodel",
+      "usd_input": 0.37,
+      "usd_output": 1.25,
+      "usd_source": "openrouter"
+    },
+    "qwen3-8-max": {
+      "input": 12.0,
+      "output": 36.0,
+      "cache_read": 1.5,
+      "currency": "cny",
+      "source": "qwen",
+      "usd_input": 2.0,
+      "usd_output": 6.0,
+      "usd_source": "openrouter"
+    },
+    "muse-spark-1-3": {
+      "input": 1.25,
+      "output": 4.25,
+      "currency": "usd",
+      "source": "openrouter",
+      "usd_input": 1.25,
+      "usd_output": 4.25,
+      "usd_source": "openrouter"
+    },
+    "hy4": {
+      "input": 6.0,
+      "output": 18.0,
+      "cache_read": null,
+      "currency": "cny",
+      "source": "siliconflow",
+      "usd_input": 0.834,
+      "usd_output": 2.501,
+      "usd_source": "openrouter"
+    },
+    "qwen3-8-flash": {
+      "input": 0.8,
+      "output": 2.7,
+      "cache_read": 0.1,
+      "currency": "cny",
+      "source": "qwen",
+      "usd_input": 0.15,
+      "usd_output": 0.47,
+      "usd_source": "openrouter"
+    },
+    "qwen3-8-27b": {
+      "input": 3.0,
+      "output": 12.0,
+      "cache_read": 0.6,
+      "currency": "cny",
+      "source": "qwen",
+      "usd_input": 0.2,
+      "usd_output": 2.5,
+      "usd_source": "openrouter"
+    },
+    "qwen3-7-flash": {
+      "input": 0.2,
+      "output": 0.8,
+      "cache_read": 0.04,
+      "currency": "cny",
+      "source": "qwen",
+      "usd_input": 0.03,
+      "usd_output": 0.13,
+      "usd_source": "openrouter"
+    },
+    "qwen3-7-plus": {
+      "input": 1.62,
+      "output": 6.48,
+      "cache_read": null,
+      "currency": "cny",
+      "source": "qwen",
+      "usd_input": 0.32,
+      "usd_output": 1.28,
+      "usd_source": "openrouter"
+    },
+    "minimax-m3": {
+      "input": 4.2,
+      "output": 16.8,
+      "cache_read": 0.84,
+      "currency": "cny",
+      "source": "qwen",
+      "usd_input": 0.3,
+      "usd_output": 1.2,
+      "usd_source": "openrouter"
+    },
+    "qwen3-7-max": {
+      "input": 12.0,
+      "output": 36.0,
+      "cache_read": 2.4,
+      "currency": "cny",
+      "source": "qwen",
+      "usd_input": 1.475,
+      "usd_output": 4.425,
+      "usd_source": "openrouter"
+    },
+    "gpt-chat": {
+      "input": 5,
+      "output": 30,
+      "currency": "usd",
+      "source": "openrouter",
+      "usd_input": 5.0,
+      "usd_output": 30.0,
+      "usd_source": "openrouter"
+    },
+    "gemini-pro": {
+      "input": 2,
+      "output": 10,
+      "currency": "usd",
+      "source": "openrouter",
+      "usd_input": 2.0,
+      "usd_output": 10.0,
+      "usd_source": "openrouter"
+    },
+    "qwen3-5-plus": {
+      "input": 0.8,
+      "output": 4.8,
+      "cache_read": null,
+      "currency": "cny",
+      "source": "qwen",
+      "usd_input": 0.3,
+      "usd_output": 1.8,
+      "usd_source": "openrouter"
+    },
+    "qwen3-6-flash": {
+      "input": 1.2,
+      "output": 7.2,
+      "cache_read": null,
+      "currency": "cny",
+      "source": "qwen",
+      "usd_input": 0.1875,
+      "usd_output": 1.125,
+      "usd_source": "openrouter"
+    },
+    "qwen3-6-35b-a3b": {
+      "input": 1.8,
+      "output": 10.8,
+      "cache_read": null,
+      "currency": "cny",
+      "source": "qwen",
+      "usd_input": 0.1,
+      "usd_output": 0.95,
+      "usd_source": "openrouter"
+    },
+    "qwen3-6-27b": {
+      "input": 3.0,
+      "output": 18.0,
+      "cache_read": null,
+      "currency": "cny",
+      "source": "qwen",
+      "usd_input": 0.32,
+      "usd_output": 3.2,
+      "usd_source": "openrouter"
+    },
+    "mimo-v2-5-pro": {
+      "input": 7.0,
+      "output": 21.0,
+      "cache_read": 1.4,
+      "currency": "cny",
+      "source": "qwen",
+      "usd_input": 0.48,
+      "usd_output": 1.8,
+      "usd_source": "openrouter"
+    },
+    "mimo-v2-5": {
+      "input": 0.14,
+      "output": 0.28,
+      "currency": "usd",
+      "source": "openrouter",
+      "usd_input": 0.4,
+      "usd_output": 2.0,
+      "usd_source": "openrouter"
+    },
+    "qwen3-6-plus": {
+      "input": 2.0,
+      "output": 12.0,
+      "cache_read": null,
+      "currency": "cny",
+      "source": "qwen",
+      "usd_input": 0.325,
+      "usd_output": 1.95,
+      "usd_source": "openrouter"
+    },
+    "minimax-m2-7": {
+      "input": 2.1,
+      "output": 8.4,
+      "cache_read": 0.42,
+      "currency": "cny",
+      "source": "qwen",
+      "usd_input": 0.3,
+      "usd_output": 1.2,
+      "usd_source": "openrouter"
+    },
+    "qwen3-5-35b-a3b": {
+      "input": 0.4,
+      "output": 3.2,
+      "cache_read": null,
+      "currency": "cny",
+      "source": "qwen",
+      "usd_input": 0.14,
+      "usd_output": 1.0,
+      "usd_source": "openrouter"
+    },
+    "qwen3-5-27b": {
+      "input": 0.6,
+      "output": 4.8,
+      "cache_read": null,
+      "currency": "cny",
+      "source": "qwen",
+      "usd_input": 0.26,
+      "usd_output": 2.6,
+      "usd_source": "openrouter"
+    },
+    "qwen3-5-122b-a10b": {
+      "input": 0.8,
+      "output": 6.4,
+      "cache_read": null,
+      "currency": "cny",
+      "source": "qwen",
+      "usd_input": 0.26,
+      "usd_output": 2.08,
+      "usd_source": "openrouter"
+    },
+    "qwen3-5-397b-a17b": {
+      "input": 1.2,
+      "output": 7.2,
+      "cache_read": null,
+      "currency": "cny",
+      "source": "qwen",
+      "usd_input": 0.5,
+      "usd_output": 3.6,
+      "usd_source": "openrouter"
+    },
+    "minimax-m2-5": {
+      "input": 2.1,
+      "output": 8.4,
+      "cache_read": 0.42,
+      "currency": "cny",
+      "source": "qwen",
+      "usd_input": 0.3,
+      "usd_output": 1.2,
+      "usd_source": "openrouter"
+    },
+    "qwen3-coder-next": {
+      "input": 0.12,
+      "output": 0.8,
+      "currency": "usd",
+      "source": "openrouter",
+      "usd_input": 0.12,
+      "usd_output": 0.8,
+      "usd_source": "openrouter"
+    },
+    "gpt-5-2-chat": {
+      "input": 1.75,
+      "output": 14,
+      "currency": "usd",
+      "source": "openrouter",
+      "usd_input": 1.75,
+      "usd_output": 14.0,
+      "usd_source": "openrouter"
+    },
+    "kimi-k2": {
+      "input": 0.6,
+      "output": 2.5,
+      "currency": "usd",
+      "source": "openrouter",
+      "usd_input": 0.6,
+      "usd_output": 2.5,
+      "usd_source": "openrouter"
+    },
+    "qwen3-vl-235b-a22b-instruct": {
+      "input": 0.21,
+      "output": 1.9,
+      "currency": "usd",
+      "source": "openrouter",
+      "usd_input": 0.21,
+      "usd_output": 1.9,
+      "usd_source": "openrouter"
+    },
+    "gpt-oss-120b": {
+      "input": 0.15,
+      "output": 0.6,
+      "currency": "usd",
+      "source": "openrouter",
+      "usd_input": 0.15,
+      "usd_output": 0.6,
+      "usd_source": "openrouter"
+    },
+    "gpt-oss-20b": {
+      "input": 0.018,
+      "output": 0.09,
+      "currency": "usd",
+      "source": "openrouter",
+      "usd_input": 0.018,
+      "usd_output": 0.09,
+      "usd_source": "openrouter"
+    },
+    "claude-opus-4-1": {
+      "input": 15,
+      "output": 75,
+      "currency": "usd",
+      "source": "openrouter",
+      "usd_input": 15.0,
+      "usd_output": 75.0,
+      "usd_source": "openrouter"
+    },
+    "qwen3-235b-a22b": {
+      "input": 0.45,
+      "output": 3.5,
+      "currency": "usd",
+      "source": "openrouter",
+      "usd_input": 0.45,
+      "usd_output": 3.5,
+      "usd_source": "openrouter"
+    },
+    "llama-guard-4-12b": {
+      "input": 0.18,
+      "output": 0.18,
+      "currency": "usd",
+      "source": "openrouter",
+      "usd_input": 0.18,
+      "usd_output": 0.18,
+      "usd_source": "openrouter"
+    },
+    "qwen3-30b-a3b": {
+      "input": 0.12,
+      "output": 0.5,
+      "currency": "usd",
+      "source": "openrouter",
+      "usd_input": 0.12,
+      "usd_output": 0.5,
+      "usd_source": "openrouter"
+    },
+    "qwen3-14b": {
+      "input": 0.12,
+      "output": 0.24,
+      "currency": "usd",
+      "source": "openrouter",
+      "usd_input": 0.12,
+      "usd_output": 0.24,
+      "usd_source": "openrouter"
+    },
+    "qwen3-32b": {
+      "input": 0.08,
+      "output": 0.28,
+      "currency": "usd",
+      "source": "openrouter",
+      "usd_input": 0.08,
+      "usd_output": 0.28,
+      "usd_source": "openrouter"
+    },
+    "llama-4-maverick": {
+      "input": 0.1875,
+      "output": 0.6525,
+      "currency": "usd",
+      "source": "openrouter",
+      "usd_input": 0.1875,
+      "usd_output": 0.6525,
+      "usd_source": "openrouter"
+    },
+    "llama-4-scout": {
+      "input": 0.1,
+      "output": 0.3,
+      "currency": "usd",
+      "source": "openrouter",
+      "usd_input": 0.1,
+      "usd_output": 0.3,
+      "usd_source": "openrouter"
+    },
+    "llama-3-3-70b-instruct": {
+      "input": 0.1,
+      "output": 0.32,
+      "currency": "usd",
+      "source": "openrouter",
+      "usd_input": 0.1,
+      "usd_output": 0.32,
+      "usd_source": "openrouter"
+    },
+    "llama-3-2-1b-instruct": {
+      "input": 0.027,
+      "output": 0.201,
+      "currency": "usd",
+      "source": "openrouter",
+      "usd_input": 0.027,
+      "usd_output": 0.201,
+      "usd_source": "openrouter"
+    },
+    "llama-3-2-3b-instruct": {
+      "input": 0.05,
+      "output": 0.33,
+      "currency": "usd",
+      "source": "openrouter",
+      "usd_input": 0.05,
+      "usd_output": 0.33,
+      "usd_source": "openrouter"
+    },
+    "llama-3-1-70b-instruct": {
+      "input": 0.4,
+      "output": 0.4,
+      "currency": "usd",
+      "source": "openrouter",
+      "usd_input": 0.4,
+      "usd_output": 0.4,
+      "usd_source": "openrouter"
+    },
+    "llama-3-1-8b-instruct": {
+      "input": 0.05,
+      "output": 0.08,
+      "currency": "usd",
+      "source": "openrouter",
+      "usd_input": 0.05,
+      "usd_output": 0.08,
+      "usd_source": "openrouter"
+    },
+    "grok": {
+      "input": 2.0,
+      "output": 6.0,
+      "currency": "usd",
+      "source": "openrouter",
+      "usd_input": 2.0,
+      "usd_output": 6.0,
+      "usd_source": "openrouter"
+    },
+    "hy3": {
+      "input": 0.132,
+      "output": 0.528,
+      "currency": "usd",
+      "source": "openrouter",
+      "usd_input": 0.132,
+      "usd_output": 0.528,
+      "usd_source": "openrouter"
+    },
+    "grok-4-20-multi-agent": {
+      "input": 1.25,
+      "output": 2.5,
+      "currency": "usd",
+      "source": "openrouter",
+      "usd_input": 1.25,
+      "usd_output": 2.5,
+      "usd_source": "openrouter"
+    },
+    "gpt-6-1-terra": {
+      "input": 1.0,
+      "output": 5.0,
+      "currency": "usd",
+      "source": "openrouter",
+      "usd_input": 1.0,
+      "usd_output": 5.0,
+      "usd_source": "openrouter"
+    },
+    "kimi-k3-1-pro": {
+      "input": 13.0,
+      "output": 68.0,
+      "cache_read": 1.3,
+      "currency": "cny",
+      "source": "bailian",
+      "usd_input": 2.0,
+      "usd_output": 10.0,
+      "usd_source": "openrouter"
+    },
+    "glm-4-airx": {
+      "input": 10.0,
+      "output": 10.0,
+      "cache_read": null,
+      "currency": "cny",
+      "source": "bigmodel"
+    },
+    "glm-4-long": {
+      "input": 1.0,
+      "output": 1.0,
+      "cache_read": 0.5,
+      "currency": "cny",
+      "source": "bigmodel"
+    },
+    "qwen-flash": {
+      "input": 0.15,
+      "output": 1.5,
+      "cache_read": 0.03,
+      "currency": "cny",
+      "source": "qwen"
+    },
+    "qwen-plus-character": {
+      "input": 0.8,
+      "output": 2.0,
+      "cache_read": 0.16,
+      "currency": "cny",
+      "source": "qwen"
+    },
+    "qwen3-vl-plus": {
+      "input": 1.0,
+      "output": 10.0,
+      "cache_read": 0.2,
+      "currency": "cny",
+      "source": "qwen"
+    },
+    "qwen3-5-flash": {
+      "input": 0.2,
+      "output": 2.0,
+      "cache_read": null,
+      "currency": "cny",
+      "source": "qwen"
+    },
+    "glm-5-3-flashx-legal": {
+      "input": 2.0,
+      "output": 7.0,
+      "cache_read": 0.57,
+      "currency": "cny",
+      "source": "bigmodel"
+    },
+    "glm-5-turbo": {
+      "input": 5.0,
+      "output": 22.0,
+      "cache_read": 1.2,
+      "currency": "cny",
+      "source": "bigmodel",
+      "usd_input": 1.2,
+      "usd_output": 4.0,
+      "usd_source": "openrouter"
+    },
+    "glm-4-7-flashx": {
+      "input": 0.5,
+      "output": 3.0,
+      "cache_read": 0.1,
+      "currency": "cny",
+      "source": "bigmodel"
+    },
+    "glm-4-plus": {
+      "input": 5.0,
+      "output": 5.0,
+      "cache_read": 2.5,
+      "currency": "cny",
+      "source": "bigmodel"
+    },
+    "glm-4-air": {
+      "input": 0.5,
+      "output": 0.5,
+      "cache_read": 0.25,
+      "currency": "cny",
+      "source": "bigmodel"
+    },
+    "glm-4-assistant": {
+      "input": 5.0,
+      "output": 5.0,
+      "cache_read": null,
+      "currency": "cny",
+      "source": "bigmodel"
+    },
+    "glm-z1-air": {
+      "input": 0.5,
+      "output": 0.5,
+      "cache_read": null,
+      "currency": "cny",
+      "source": "bigmodel"
+    },
+    "glm-z1-airx": {
+      "input": 5.0,
+      "output": 5.0,
+      "cache_read": null,
+      "currency": "cny",
+      "source": "bigmodel"
+    },
+    "glm-z1-flashx": {
+      "input": 0.1,
+      "output": 0.1,
+      "cache_read": null,
+      "currency": "cny",
+      "source": "bigmodel"
+    },
+    "glm-4-flashx": {
+      "input": 0.1,
+      "output": 0.1,
+      "cache_read": 0.05,
+      "currency": "cny",
+      "source": "bigmodel"
+    },
+    "glm-ocr": {
+      "input": 0.2,
+      "output": 0.2,
+      "cache_read": null,
+      "currency": "cny",
+      "source": "bigmodel"
+    },
+    "glm-5v-turbo": {
+      "input": 5.0,
+      "output": 22.0,
+      "cache_read": 1.2,
+      "currency": "cny",
+      "source": "bigmodel",
+      "usd_input": 1.2,
+      "usd_output": 4.0,
+      "usd_source": "openrouter"
+    },
+    "glm-4-6v": {
+      "input": 1.0,
+      "output": 3.0,
+      "cache_read": 0.2,
+      "currency": "cny",
+      "source": "bigmodel",
+      "usd_input": 0.3,
+      "usd_output": 0.9,
+      "usd_source": "openrouter"
+    },
+    "glm-4-6v-flashx": {
+      "input": 0.15,
+      "output": 1.5,
+      "cache_read": 0.03,
+      "currency": "cny",
+      "source": "bigmodel"
+    },
+    "glm-4-5v": {
+      "input": 2.0,
+      "output": 6.0,
+      "cache_read": 0.4,
+      "currency": "cny",
+      "source": "bigmodel",
+      "usd_input": 0.6,
+      "usd_output": 1.8,
+      "usd_source": "openrouter"
+    },
+    "glm-4v-plus": {
+      "input": 4.0,
+      "output": 4.0,
+      "cache_read": 2.0,
+      "currency": "cny",
+      "source": "bigmodel"
+    },
+    "glm-4-1v-thinking-flashx": {
+      "input": 2.0,
+      "output": 2.0,
+      "cache_read": null,
+      "currency": "cny",
+      "source": "bigmodel"
+    },
+    "qwen-deep-research": {
+      "input": 54.0,
+      "output": 163.0,
+      "cache_read": null,
+      "currency": "cny",
+      "source": "qwen"
+    },
+    "qwen-doc-turbo": {
+      "input": 0.6,
+      "output": 1.0,
+      "cache_read": 0.12,
+      "currency": "cny",
+      "source": "qwen"
+    },
+    "qwen-flash-character": {
+      "input": 0.25,
+      "output": 1.5,
+      "cache_read": 0.05,
+      "currency": "cny",
+      "source": "qwen"
+    },
+    "qwen-long": {
+      "input": 0.5,
+      "output": 2.0,
+      "cache_read": null,
+      "currency": "cny",
+      "source": "qwen"
+    },
+    "qwen-mt-flash": {
+      "input": 0.7,
+      "output": 1.95,
+      "cache_read": null,
+      "currency": "cny",
+      "source": "qwen"
+    },
+    "qwen-mt-lite": {
+      "input": 0.6,
+      "output": 1.6,
+      "cache_read": null,
+      "currency": "cny",
+      "source": "qwen"
+    },
+    "qwen-mt-plus": {
+      "input": 1.8,
+      "output": 5.4,
+      "cache_read": null,
+      "currency": "cny",
+      "source": "qwen"
+    },
+    "qwen-vl-ocr": {
+      "input": 0.3,
+      "output": 0.5,
+      "cache_read": null,
+      "currency": "cny",
+      "source": "qwen"
+    },
+    "qwen3-coder-flash": {
+      "input": 1.0,
+      "output": 4.0,
+      "cache_read": 0.2,
+      "currency": "cny",
+      "source": "qwen",
+      "usd_input": 0.195,
+      "usd_output": 0.975,
+      "usd_source": "openrouter"
+    },
+    "qwen3-5-ocr": {
+      "input": 0.5,
+      "output": 2.0,
+      "cache_read": null,
+      "currency": "cny",
+      "source": "qwen"
+    },
+    "qwen3-8-2-4t-a95b": {
+      "input": 12.0,
+      "output": 36.0,
+      "cache_read": 1.5,
+      "currency": "cny",
+      "source": "qwen",
+      "usd_input": 2.0,
+      "usd_output": 6.0,
+      "usd_source": "openrouter"
+    },
+    "tongyi-intent-detect-v3": {
+      "input": 0.4,
+      "output": 1.0,
+      "cache_read": null,
+      "currency": "cny",
+      "source": "qwen"
+    },
+    "tongyi-xiaomi-analysis-flash": {
+      "input": 0.2,
+      "output": 0.4,
+      "cache_read": 0.04,
+      "currency": "cny",
+      "source": "qwen"
+    },
+    "tongyi-xiaomi-analysis-pro": {
+      "input": 1.0,
+      "output": 2.7,
+      "cache_read": 0.2,
+      "currency": "cny",
+      "source": "qwen"
+    },
+    "gui-plus": {
+      "input": 1.5,
+      "output": 4.5,
+      "cache_read": null,
+      "currency": "cny",
+      "source": "qwen"
+    },
+    "glm-5-2-fast": {
+      "input": 16.0,
+      "output": 56.0,
+      "cache_read": 4.0,
+      "currency": "cny",
+      "source": "qwen"
+    },
+    "glm-5-3-prime": {
+      "input": 16.0,
+      "output": 56.0,
+      "cache_read": 4.0,
+      "currency": "cny",
+      "source": "qwen",
+      "usd_input": 2.8,
+      "usd_output": 8.8,
+      "usd_source": "openrouter"
+    },
+    "kimi-k2-7-code-highspeed": {
+      "input": 13.0,
+      "output": 54.0,
+      "cache_read": 2.6,
+      "currency": "cny",
+      "source": "qwen"
+    },
+    "kimi-k2-8": {
+      "input": 6.5,
+      "output": 27.0,
+      "cache_read": 1.7,
+      "currency": "cny",
+      "source": "qwen"
+    },
+    "minimax-m2-1": {
+      "input": 2.1,
+      "output": 8.4,
+      "cache_read": 0.21,
+      "currency": "cny",
+      "source": "qwen",
+      "usd_input": 0.3,
+      "usd_output": 1.2,
+      "usd_source": "openrouter"
+    },
+    "minimax-m3-1-flash": {
+      "input": 1.0,
+      "output": 4.0,
+      "cache_read": 0.1,
+      "currency": "cny",
+      "source": "qwen",
+      "usd_input": 0.15,
+      "usd_output": 0.6,
+      "usd_source": "openrouter"
+    },
+    "step-3-7-flash": {
+      "input": 1.35,
+      "output": 8.1,
+      "cache_read": 0.27,
+      "currency": "cny",
+      "source": "qwen",
+      "usd_input": 0.2,
+      "usd_output": 1.15,
+      "usd_source": "openrouter"
+    },
+    "step-5": {
+      "input": 7.0,
+      "output": 20.0,
+      "cache_read": 0.35,
+      "currency": "cny",
+      "source": "qwen",
+      "usd_input": 1.0,
+      "usd_output": 2.7,
+      "usd_source": "openrouter"
+    },
+    "unisound-u2": {
+      "input": 1.0,
+      "output": 2.0,
+      "cache_read": 0.2,
+      "currency": "cny",
+      "source": "qwen"
+    },
+    "deepseek-ocr": {
+      "input": 0.216,
+      "output": 0.216,
+      "cache_read": null,
+      "currency": "cny",
+      "source": "qwen"
+    },
+    "deepseek-v3-1-terminus": {
+      "input": 4.0,
+      "output": 12.0,
+      "cache_read": null,
+      "currency": "cny",
+      "source": "siliconflow",
+      "usd_input": 0.27,
+      "usd_output": 1.0,
+      "usd_source": "openrouter"
+    },
+    "deepseek-v3-2-think": {
+      "input": 2.0,
+      "output": 3.0,
+      "cache_read": 0.2,
+      "currency": "cny",
+      "source": "qwen"
+    },
+    "kimi-k3-1-pro-highspeed": {
+      "input": 26.0,
+      "output": 136.0,
+      "cache_read": 1.3,
+      "currency": "cny",
+      "source": "bailian"
+    },
+    "hunyuan-a13b-instruct": {
+      "input": 1.0,
+      "output": 4.0,
+      "cache_read": null,
+      "currency": "cny",
+      "source": "siliconflow",
+      "usd_input": 0.14,
+      "usd_output": 0.57,
+      "usd_source": "openrouter"
+    },
+    "longcat-2-0": {
+      "input": 5.0,
+      "output": 20.0,
+      "cache_read": null,
+      "currency": "cny",
+      "source": "siliconflow",
+      "usd_input": 0.3,
+      "usd_output": 1.2,
+      "usd_source": "openrouter"
+    },
+    "step-3-5-flash": {
+      "input": 0.7,
+      "output": 2.1,
+      "cache_read": null,
+      "currency": "cny",
+      "source": "siliconflow",
+      "usd_input": 0.1,
+      "usd_output": 0.3,
+      "usd_source": "openrouter"
+    },
+    "seed-oss-36b-instruct": {
+      "input": 1.5,
+      "output": 4.0,
+      "cache_read": null,
+      "currency": "cny",
+      "source": "siliconflow"
+    },
+    "gpt-6-1-terra-pro": {
+      "input": 1.0,
+      "output": 5.0,
+      "currency": "usd",
+      "source": "openrouter",
+      "usd_input": 1.0,
+      "usd_output": 5.0,
+      "usd_source": "openrouter"
+    },
+    "glimpse": {
+      "input": 0.6,
+      "output": 3.0,
+      "currency": "usd",
+      "source": "openrouter",
+      "usd_input": 0.6,
+      "usd_output": 3.0,
+      "usd_source": "openrouter"
+    },
+    "beam-1-0-501b-a23b": {
+      "input": 0.25,
+      "output": 1.0,
+      "currency": "usd",
+      "source": "openrouter",
+      "usd_input": 0.25,
+      "usd_output": 1.0,
+      "usd_source": "openrouter"
+    },
+    "mercury-3": {
+      "input": 0.1,
+      "output": 0.35,
+      "currency": "usd",
+      "source": "openrouter",
+      "usd_input": 0.1,
+      "usd_output": 0.35,
+      "usd_source": "openrouter"
+    },
+    "moondream3": {
+      "input": 0.3,
+      "output": 2.5,
+      "currency": "usd",
+      "source": "openrouter",
+      "usd_input": 0.3,
+      "usd_output": 2.5,
+      "usd_source": "openrouter"
+    },
+    "moondream3-1-9b-a2b": {
+      "input": 0.3,
+      "output": 2.5,
+      "currency": "usd",
+      "source": "openrouter",
+      "usd_input": 0.3,
+      "usd_output": 2.5,
+      "usd_source": "openrouter"
+    },
+    "muse-spark-open": {
+      "input": 1.25,
+      "output": 4.25,
+      "currency": "usd",
+      "source": "openrouter",
+      "usd_input": 1.25,
+      "usd_output": 4.25,
+      "usd_source": "openrouter"
+    },
+    "nemotron-3-5-super-vl": {
+      "input": 0.15,
+      "output": 0.5,
+      "currency": "usd",
+      "source": "openrouter",
+      "usd_input": 0.15,
+      "usd_output": 0.5,
+      "usd_source": "openrouter"
+    },
+    "pareto-26-10": {
+      "input": 0.8,
+      "output": 3.2,
+      "currency": "usd",
+      "source": "openrouter",
+      "usd_input": 0.8,
+      "usd_output": 3.2,
+      "usd_source": "openrouter"
+    },
+    "pareto": {
+      "input": 0.8,
+      "output": 3.2,
+      "currency": "usd",
+      "source": "openrouter",
+      "usd_input": 0.8,
+      "usd_output": 3.2,
+      "usd_source": "openrouter"
+    },
+    "pareto-26-9": {
+      "input": 2.5,
+      "output": 7.5,
+      "currency": "usd",
+      "source": "openrouter",
+      "usd_input": 2.5,
+      "usd_output": 7.5,
+      "usd_source": "openrouter"
+    },
+    "lfm-2-5-24b-a2b": {
+      "input": 0.05,
+      "output": 0.7,
+      "currency": "usd",
+      "source": "openrouter",
+      "usd_input": 0.05,
+      "usd_output": 0.7,
+      "usd_source": "openrouter"
+    },
+    "muse-wonder": {
+      "input": 4.0,
+      "output": 20.0,
+      "currency": "usd",
+      "source": "openrouter",
+      "usd_input": 4.0,
+      "usd_output": 20.0,
+      "usd_source": "openrouter"
+    },
+    "mistral-large-4-0": {
+      "input": 1.36,
+      "output": 4.18,
+      "currency": "usd",
+      "source": "openrouter",
+      "usd_input": 1.36,
+      "usd_output": 4.18,
+      "usd_source": "openrouter"
+    },
+    "ling-3-1-flash": {
+      "input": 0.075,
+      "output": 0.225,
+      "currency": "usd",
+      "source": "openrouter",
+      "usd_input": 0.075,
+      "usd_output": 0.225,
+      "usd_source": "openrouter"
+    },
+    "gpt-6-1-sol-pro": {
+      "input": 2.0,
+      "output": 10.0,
+      "currency": "usd",
+      "source": "openrouter",
+      "usd_input": 2.0,
+      "usd_output": 10.0,
+      "usd_source": "openrouter"
+    },
+    "perceptron-mk1-5": {
+      "input": 0.15,
+      "output": 1.5,
+      "currency": "usd",
+      "source": "openrouter",
+      "usd_input": 0.15,
+      "usd_output": 1.5,
+      "usd_source": "openrouter"
+    },
+    "ember-1": {
+      "input": 3.0,
+      "output": 15.0,
+      "currency": "usd",
+      "source": "openrouter",
+      "usd_input": 3.0,
+      "usd_output": 15.0,
+      "usd_source": "openrouter"
+    },
+    "qwen3-8-max-prime": {
+      "input": 4.0,
+      "output": 12.0,
+      "currency": "usd",
+      "source": "openrouter",
+      "usd_input": 4.0,
+      "usd_output": 12.0,
+      "usd_source": "openrouter"
+    },
+    "aion-3-5-mini": {
+      "input": 0.7,
+      "output": 1.4,
+      "currency": "usd",
+      "source": "openrouter",
+      "usd_input": 0.7,
+      "usd_output": 1.4,
+      "usd_source": "openrouter"
+    },
+    "aion-3-5": {
+      "input": 3.0,
+      "output": 6.0,
+      "currency": "usd",
+      "source": "openrouter",
+      "usd_input": 3.0,
+      "usd_output": 6.0,
+      "usd_source": "openrouter"
+    },
+    "solar-mini4": {
+      "input": 0.05,
+      "output": 0.2,
+      "currency": "usd",
+      "source": "openrouter",
+      "usd_input": 0.05,
+      "usd_output": 0.2,
+      "usd_source": "openrouter"
+    },
+    "command-a-plus": {
+      "input": 0.3,
+      "output": 1.5,
+      "currency": "usd",
+      "source": "openrouter",
+      "usd_input": 0.3,
+      "usd_output": 1.5,
+      "usd_source": "openrouter"
+    },
+    "gpt-6-luna-pro": {
+      "input": 0.1,
+      "output": 0.5,
+      "currency": "usd",
+      "source": "openrouter",
+      "usd_input": 0.1,
+      "usd_output": 0.5,
+      "usd_source": "openrouter"
+    },
+    "gpt-6-sol-pro": {
+      "input": 2.0,
+      "output": 10.0,
+      "currency": "usd",
+      "source": "openrouter",
+      "usd_input": 2.0,
+      "usd_output": 10.0,
+      "usd_source": "openrouter"
+    },
+    "qwen3-8-omni-flash": {
+      "input": 0.15,
+      "output": 0.47,
+      "currency": "usd",
+      "source": "openrouter",
+      "usd_input": 0.15,
+      "usd_output": 0.47,
+      "usd_source": "openrouter"
+    },
+    "ternary-bonsai-2-27b": {
+      "input": 0.075,
+      "output": 0.5,
+      "currency": "usd",
+      "source": "openrouter",
+      "usd_input": 0.075,
+      "usd_output": 0.5,
+      "usd_source": "openrouter"
+    },
+    "deepseek-pro": {
+      "input": 0.2541,
+      "output": 8.0,
+      "currency": "usd",
+      "source": "openrouter",
+      "usd_input": 0.2541,
+      "usd_output": 8.0,
+      "usd_source": "openrouter"
+    },
+    "schematron-v2-turbo": {
+      "input": 0.03,
+      "output": 0.15,
+      "currency": "usd",
+      "source": "openrouter",
+      "usd_input": 0.03,
+      "usd_output": 0.15,
+      "usd_source": "openrouter"
+    },
+    "schematron-v2-small": {
+      "input": 0.05,
+      "output": 0.23,
+      "currency": "usd",
+      "source": "openrouter",
+      "usd_input": 0.05,
+      "usd_output": 0.23,
+      "usd_source": "openrouter"
+    },
+    "gpt-astra": {
+      "input": 10.0,
+      "output": 50.0,
+      "currency": "usd",
+      "source": "openrouter",
+      "usd_input": 10.0,
+      "usd_output": 50.0,
+      "usd_source": "openrouter"
+    },
+    "gpt-sol": {
+      "input": 2.0,
+      "output": 10.0,
+      "currency": "usd",
+      "source": "openrouter",
+      "usd_input": 2.0,
+      "usd_output": 10.0,
+      "usd_source": "openrouter"
+    },
+    "gpt-terra": {
+      "input": 1.0,
+      "output": 5.0,
+      "currency": "usd",
+      "source": "openrouter",
+      "usd_input": 1.0,
+      "usd_output": 5.0,
+      "usd_source": "openrouter"
+    },
+    "gpt-luna": {
+      "input": 0.1,
+      "output": 0.5,
+      "currency": "usd",
+      "source": "openrouter",
+      "usd_input": 0.1,
+      "usd_output": 0.5,
+      "usd_source": "openrouter"
+    },
+    "fugu-ultra-v2": {
+      "input": 5.0,
+      "output": 30.0,
+      "currency": "usd",
+      "source": "openrouter",
+      "usd_input": 5.0,
+      "usd_output": 30.0,
+      "usd_source": "openrouter"
+    },
+    "fugu-max": {
+      "input": 2.0,
+      "output": 6.0,
+      "currency": "usd",
+      "source": "openrouter",
+      "usd_input": 2.0,
+      "usd_output": 6.0,
+      "usd_source": "openrouter"
+    },
+    "ling-3-0-flash-vl": {
+      "input": 0.06,
+      "output": 0.18,
+      "currency": "usd",
+      "source": "openrouter",
+      "usd_input": 0.06,
+      "usd_output": 0.18,
+      "usd_source": "openrouter"
+    },
+    "mercury-2-5": {
+      "input": 0.04,
+      "output": 0.15,
+      "currency": "usd",
+      "source": "openrouter",
+      "usd_input": 0.04,
+      "usd_output": 0.15,
+      "usd_source": "openrouter"
+    },
+    "nex-n2-5-mini": {
+      "input": 0.025,
+      "output": 0.1,
+      "currency": "usd",
+      "source": "openrouter",
+      "usd_input": 0.025,
+      "usd_output": 0.1,
+      "usd_source": "openrouter"
+    },
+    "nex-n2-5-pro": {
+      "input": 0.075,
+      "output": 0.25,
+      "currency": "usd",
+      "source": "openrouter",
+      "usd_input": 0.075,
+      "usd_output": 0.25,
+      "usd_source": "openrouter"
+    },
+    "gpt-6-astra-pro": {
+      "input": 10.0,
+      "output": 50.0,
+      "currency": "usd",
+      "source": "openrouter",
+      "usd_input": 10.0,
+      "usd_output": 50.0,
+      "usd_source": "openrouter"
+    },
+    "muse-spark-1-3-contributor": {
+      "input": 0.1,
+      "output": 0.2,
+      "currency": "usd",
+      "source": "openrouter",
+      "usd_input": 0.1,
+      "usd_output": 0.2,
+      "usd_source": "openrouter"
+    },
+    "granite-4-2-8b": {
+      "input": 0.06,
+      "output": 0.25,
+      "currency": "usd",
+      "source": "openrouter",
+      "usd_input": 0.06,
+      "usd_output": 0.25,
+      "usd_source": "openrouter"
+    },
+    "glm-flash": {
+      "input": 0.047529,
+      "output": 0.1,
+      "currency": "usd",
+      "source": "openrouter",
+      "usd_input": 0.047529,
+      "usd_output": 0.1,
+      "usd_source": "openrouter"
+    },
+    "muse-spark-1-2-contributor": {
+      "input": 0.1,
+      "output": 0.2,
+      "currency": "usd",
+      "source": "openrouter",
+      "usd_input": 0.1,
+      "usd_output": 0.2,
+      "usd_source": "openrouter"
+    },
+    "hy-mt2-1-8b": {
+      "input": 0.044,
+      "output": 0.177,
+      "currency": "usd",
+      "source": "openrouter",
+      "usd_input": 0.044,
+      "usd_output": 0.177,
+      "usd_source": "openrouter"
+    },
+    "hy-mt2-30b-a3b": {
+      "input": 0.074,
+      "output": 0.295,
+      "currency": "usd",
+      "source": "openrouter",
+      "usd_input": 0.074,
+      "usd_output": 0.295,
+      "usd_source": "openrouter"
+    },
+    "glm": {
+      "input": 0.0699,
+      "output": 1.4,
+      "currency": "usd",
+      "source": "openrouter",
+      "usd_input": 0.0699,
+      "usd_output": 1.4,
+      "usd_source": "openrouter"
+    },
+    "hy-mt2-7b": {
+      "input": 0.074,
+      "output": 0.295,
+      "currency": "usd",
+      "source": "openrouter",
+      "usd_input": 0.074,
+      "usd_output": 0.295,
+      "usd_source": "openrouter"
+    },
+    "seed-2-1-turbo": {
+      "input": 0.5,
+      "output": 2.5,
+      "currency": "usd",
+      "source": "openrouter",
+      "usd_input": 0.5,
+      "usd_output": 2.5,
+      "usd_source": "openrouter"
+    },
+    "seed-2-0-code": {
+      "input": 0.5,
+      "output": 3.0,
+      "currency": "usd",
+      "source": "openrouter",
+      "usd_input": 0.5,
+      "usd_output": 3.0,
+      "usd_source": "openrouter"
+    },
+    "lfm-2-5-2-6b": {
+      "input": 0.35,
+      "output": 0.5,
+      "currency": "usd",
+      "source": "openrouter",
+      "usd_input": 0.35,
+      "usd_output": 0.5,
+      "usd_source": "openrouter"
+    },
+    "nemotron-3-5-lightning": {
+      "input": 0.07,
+      "output": 0.2,
+      "currency": "usd",
+      "source": "openrouter",
+      "usd_input": 0.07,
+      "usd_output": 0.2,
+      "usd_source": "openrouter"
+    },
+    "sakana-namazu": {
+      "input": 0.95,
+      "output": 4.0,
+      "currency": "usd",
+      "source": "openrouter",
+      "usd_input": 0.95,
+      "usd_output": 4.0,
+      "usd_source": "openrouter"
+    },
+    "solar-pro4": {
+      "input": 0.15,
+      "output": 0.6,
+      "currency": "usd",
+      "source": "openrouter",
+      "usd_input": 0.15,
+      "usd_output": 0.6,
+      "usd_source": "openrouter"
+    },
+    "muse-glimmer-30b": {
+      "input": 0.3,
+      "output": 1.2,
+      "currency": "usd",
+      "source": "openrouter",
+      "usd_input": 0.3,
+      "usd_output": 1.2,
+      "usd_source": "openrouter"
+    },
+    "muse-spark-1-2": {
+      "input": 1.25,
+      "output": 4.25,
+      "currency": "usd",
+      "source": "openrouter",
+      "usd_input": 1.25,
+      "usd_output": 4.25,
+      "usd_source": "openrouter"
+    },
+    "inkling-small": {
+      "input": 0.45,
+      "output": 1.2,
+      "currency": "usd",
+      "source": "openrouter",
+      "usd_input": 0.45,
+      "usd_output": 1.2,
+      "usd_source": "openrouter"
+    },
+    "ling-3-0-flash": {
+      "input": 0.021,
+      "output": 0.063,
+      "currency": "usd",
+      "source": "openrouter",
+      "usd_input": 0.021,
+      "usd_output": 0.063,
+      "usd_source": "openrouter"
+    },
+    "laguna-s-2-1": {
+      "input": 0.09,
+      "output": 0.18,
+      "currency": "usd",
+      "source": "openrouter",
+      "usd_input": 0.09,
+      "usd_output": 0.18,
+      "usd_source": "openrouter"
+    },
+    "inkling": {
+      "input": 1.0,
+      "output": 4.05,
+      "currency": "usd",
+      "source": "openrouter",
+      "usd_input": 1.0,
+      "usd_output": 4.05,
+      "usd_source": "openrouter"
+    },
+    "muse-spark-1-1": {
+      "input": 1.25,
+      "output": 4.25,
+      "currency": "usd",
+      "source": "openrouter",
+      "usd_input": 1.25,
+      "usd_output": 4.25,
+      "usd_source": "openrouter"
+    },
+    "gpt-5-6-luna-pro": {
+      "input": 0.2,
+      "output": 1.2,
+      "currency": "usd",
+      "source": "openrouter",
+      "usd_input": 0.2,
+      "usd_output": 1.2,
+      "usd_source": "openrouter"
+    },
+    "gpt-5-6-terra-pro": {
+      "input": 2.0,
+      "output": 12.0,
+      "currency": "usd",
+      "source": "openrouter",
+      "usd_input": 2.0,
+      "usd_output": 12.0,
+      "usd_source": "openrouter"
+    },
+    "gpt-5-6-sol-pro": {
+      "input": 4.0,
+      "output": 20.0,
+      "currency": "usd",
+      "source": "openrouter",
+      "usd_input": 4.0,
+      "usd_output": 20.0,
+      "usd_source": "openrouter"
+    },
+    "aion-3-0-mini": {
+      "input": 0.7,
+      "output": 1.4,
+      "currency": "usd",
+      "source": "openrouter",
+      "usd_input": 0.7,
+      "usd_output": 1.4,
+      "usd_source": "openrouter"
+    },
+    "aion-3-0": {
+      "input": 3.0,
+      "output": 6.0,
+      "currency": "usd",
+      "source": "openrouter",
+      "usd_input": 3.0,
+      "usd_output": 6.0,
+      "usd_source": "openrouter"
+    },
+    "laguna-xs-2-1": {
+      "input": 0.06,
+      "output": 0.12,
+      "currency": "usd",
+      "source": "openrouter",
+      "usd_input": 0.06,
+      "usd_output": 0.12,
+      "usd_source": "openrouter"
+    },
+    "fugu-ultra": {
+      "input": 5.0,
+      "output": 30.0,
+      "currency": "usd",
+      "source": "openrouter",
+      "usd_input": 5.0,
+      "usd_output": 30.0,
+      "usd_source": "openrouter"
+    },
+    "claude-fable": {
+      "input": 10.0,
+      "output": 50.0,
+      "currency": "usd",
+      "source": "openrouter",
+      "usd_input": 10.0,
+      "usd_output": 50.0,
+      "usd_source": "openrouter"
+    },
+    "nemotron-3-5-content-safety": {
+      "input": 0.2,
+      "output": 0.2,
+      "currency": "usd",
+      "source": "openrouter",
+      "usd_input": 0.2,
+      "usd_output": 0.2,
+      "usd_source": "openrouter"
+    },
+    "nemotron-3-ultra-550b-a55b": {
+      "input": 0.6,
+      "output": 2.4,
+      "currency": "usd",
+      "source": "openrouter",
+      "usd_input": 0.6,
+      "usd_output": 2.4,
+      "usd_source": "openrouter"
+    },
+    "perceptron-mk1": {
+      "input": 0.15,
+      "output": 1.5,
+      "currency": "usd",
+      "source": "openrouter",
+      "usd_input": 0.15,
+      "usd_output": 1.5,
+      "usd_source": "openrouter"
+    },
+    "mistral-medium-3-5": {
+      "input": 1.5,
+      "output": 7.5,
+      "currency": "usd",
+      "source": "openrouter",
+      "usd_input": 1.5,
+      "usd_output": 7.5,
+      "usd_source": "openrouter"
+    },
+    "claude-haiku": {
+      "input": 0.1,
+      "output": 0.5,
+      "currency": "usd",
+      "source": "openrouter",
+      "usd_input": 0.1,
+      "usd_output": 0.5,
+      "usd_source": "openrouter"
+    },
+    "gpt-mini": {
+      "input": 0.75,
+      "output": 4.5,
+      "currency": "usd",
+      "source": "openrouter",
+      "usd_input": 0.75,
+      "usd_output": 4.5,
+      "usd_source": "openrouter"
+    },
+    "kimi": {
+      "input": 0.169,
+      "output": 20.0,
+      "currency": "usd",
+      "source": "openrouter",
+      "usd_input": 0.169,
+      "usd_output": 20.0,
+      "usd_source": "openrouter"
+    },
+    "claude-sonnet": {
+      "input": 2.0,
+      "output": 10.0,
+      "currency": "usd",
+      "source": "openrouter",
+      "usd_input": 2.0,
+      "usd_output": 10.0,
+      "usd_source": "openrouter"
+    },
+    "gpt-5-4-image-2": {
+      "input": 8.0,
+      "output": 15.0,
+      "currency": "usd",
+      "source": "openrouter",
+      "usd_input": 8.0,
+      "usd_output": 15.0,
+      "usd_source": "openrouter"
+    },
+    "claude-opus": {
+      "input": 4.0,
+      "output": 20.0,
+      "currency": "usd",
+      "source": "openrouter",
+      "usd_input": 4.0,
+      "usd_output": 20.0,
+      "usd_source": "openrouter"
+    },
+    "gemma-4-26b-a4b-it": {
+      "input": 0.09,
+      "output": 0.3,
+      "currency": "usd",
+      "source": "openrouter",
+      "usd_input": 0.09,
+      "usd_output": 0.3,
+      "usd_source": "openrouter"
+    },
+    "gemma-4-31b-it": {
+      "input": 0.2,
+      "output": 0.4,
+      "currency": "usd",
+      "source": "openrouter",
+      "usd_input": 0.2,
+      "usd_output": 0.4,
+      "usd_source": "openrouter"
+    },
+    "grok-4-20": {
+      "input": 1.25,
+      "output": 2.5,
+      "currency": "usd",
+      "source": "openrouter",
+      "usd_input": 1.25,
+      "usd_output": 2.5,
+      "usd_source": "openrouter"
+    },
+    "reka-edge": {
+      "input": 0.1,
+      "output": 0.1,
+      "currency": "usd",
+      "source": "openrouter",
+      "usd_input": 0.1,
+      "usd_output": 0.1,
+      "usd_source": "openrouter"
+    },
+    "mistral-small": {
+      "input": 0.15,
+      "output": 0.6,
+      "currency": "usd",
+      "source": "openrouter",
+      "usd_input": 0.15,
+      "usd_output": 0.6,
+      "usd_source": "openrouter"
+    },
+    "nemotron-3-super-120b-a12b": {
+      "input": 0.3,
+      "output": 2.4,
+      "currency": "usd",
+      "source": "openrouter",
+      "usd_input": 0.3,
+      "usd_output": 2.4,
+      "usd_source": "openrouter"
+    },
+    "seed-2-0-lite": {
+      "input": 0.25,
+      "output": 2.0,
+      "currency": "usd",
+      "source": "openrouter",
+      "usd_input": 0.25,
+      "usd_output": 2.0,
+      "usd_source": "openrouter"
+    },
+    "qwen3-5-9b": {
+      "input": 0.17,
+      "output": 0.25,
+      "currency": "usd",
+      "source": "openrouter",
+      "usd_input": 0.17,
+      "usd_output": 0.25,
+      "usd_source": "openrouter"
+    },
+    "mercury-2": {
+      "input": 0.25,
+      "output": 0.75,
+      "currency": "usd",
+      "source": "openrouter",
+      "usd_input": 0.25,
+      "usd_output": 0.75,
+      "usd_source": "openrouter"
+    },
+    "seed-2-0-mini": {
+      "input": 0.1,
+      "output": 0.4,
+      "currency": "usd",
+      "source": "openrouter",
+      "usd_input": 0.1,
+      "usd_output": 0.4,
+      "usd_source": "openrouter"
+    },
+    "qwen3-5-flash-02-23": {
+      "input": 0.065,
+      "output": 0.26,
+      "currency": "usd",
+      "source": "openrouter",
+      "usd_input": 0.065,
+      "usd_output": 0.26,
+      "usd_source": "openrouter"
+    },
+    "gemini-3-1-pro-preview-customtools": {
+      "input": 2.0,
+      "output": 12.0,
+      "currency": "usd",
+      "source": "openrouter",
+      "usd_input": 2.0,
+      "usd_output": 12.0,
+      "usd_source": "openrouter"
+    },
+    "aion-2-0": {
+      "input": 0.8,
+      "output": 1.6,
+      "currency": "usd",
+      "source": "openrouter",
+      "usd_input": 0.8,
+      "usd_output": 1.6,
+      "usd_source": "openrouter"
+    },
+    "qwen3-5-plus-02-15": {
+      "input": 0.26,
+      "output": 1.56,
+      "currency": "usd",
+      "source": "openrouter",
+      "usd_input": 0.26,
+      "usd_output": 1.56,
+      "usd_source": "openrouter"
+    },
+    "solar-pro-3": {
+      "input": 0.15,
+      "output": 0.6,
+      "currency": "usd",
+      "source": "openrouter",
+      "usd_input": 0.15,
+      "usd_output": 0.6,
+      "usd_source": "openrouter"
+    },
+    "minimax-m2-her": {
+      "input": 0.3,
+      "output": 1.2,
+      "currency": "usd",
+      "source": "openrouter",
+      "usd_input": 0.3,
+      "usd_output": 1.2,
+      "usd_source": "openrouter"
+    },
+    "palmyra-x5": {
+      "input": 0.6,
+      "output": 6.0,
+      "currency": "usd",
+      "source": "openrouter",
+      "usd_input": 0.6,
+      "usd_output": 6.0,
+      "usd_source": "openrouter"
+    },
+    "gpt-audio-mini": {
+      "input": 0.6,
+      "output": 2.4,
+      "currency": "usd",
+      "source": "openrouter",
+      "usd_input": 0.6,
+      "usd_output": 2.4,
+      "usd_source": "openrouter"
+    },
+    "glm-4-7-flash": {
+      "input": 0.0605,
+      "output": 0.4,
+      "currency": "usd",
+      "source": "openrouter",
+      "usd_input": 0.0605,
+      "usd_output": 0.4,
+      "usd_source": "openrouter"
+    },
+    "seed-1-6-flash": {
+      "input": 0.075,
+      "output": 0.3,
+      "currency": "usd",
+      "source": "openrouter",
+      "usd_input": 0.075,
+      "usd_output": 0.3,
+      "usd_source": "openrouter"
+    },
+    "seed-1-6": {
+      "input": 0.25,
+      "output": 2.0,
+      "currency": "usd",
+      "source": "openrouter",
+      "usd_input": 0.25,
+      "usd_output": 2.0,
+      "usd_source": "openrouter"
+    },
+    "nemotron-3-nano-30b-a3b": {
+      "input": 0.06,
+      "output": 0.24,
+      "currency": "usd",
+      "source": "openrouter",
+      "usd_input": 0.06,
+      "usd_output": 0.24,
+      "usd_source": "openrouter"
+    },
+    "devstral": {
+      "input": 0.4,
+      "output": 2.0,
+      "currency": "usd",
+      "source": "openrouter",
+      "usd_input": 0.4,
+      "usd_output": 2.0,
+      "usd_source": "openrouter"
+    },
+    "relace-search": {
+      "input": 1.0,
+      "output": 3.0,
+      "currency": "usd",
+      "source": "openrouter",
+      "usd_input": 1.0,
+      "usd_output": 3.0,
+      "usd_source": "openrouter"
+    },
+    "gpt-5-1-codex-max": {
+      "input": 1.25,
+      "output": 10.0,
+      "currency": "usd",
+      "source": "openrouter",
+      "usd_input": 1.25,
+      "usd_output": 10.0,
+      "usd_source": "openrouter"
+    },
+    "nova-2-lite-v1": {
+      "input": 0.3,
+      "output": 2.5,
+      "currency": "usd",
+      "source": "openrouter",
+      "usd_input": 0.3,
+      "usd_output": 2.5,
+      "usd_source": "openrouter"
+    },
+    "ministral-14b": {
+      "input": 0.2,
+      "output": 0.2,
+      "currency": "usd",
+      "source": "openrouter",
+      "usd_input": 0.2,
+      "usd_output": 0.2,
+      "usd_source": "openrouter"
+    },
+    "ministral-8b": {
+      "input": 0.15,
+      "output": 0.15,
+      "currency": "usd",
+      "source": "openrouter",
+      "usd_input": 0.15,
+      "usd_output": 0.15,
+      "usd_source": "openrouter"
+    },
+    "ministral-3b": {
+      "input": 0.1,
+      "output": 0.1,
+      "currency": "usd",
+      "source": "openrouter",
+      "usd_input": 0.1,
+      "usd_output": 0.1,
+      "usd_source": "openrouter"
+    },
+    "mistral-large": {
+      "input": 0.5,
+      "output": 1.5,
+      "currency": "usd",
+      "source": "openrouter",
+      "usd_input": 0.5,
+      "usd_output": 1.5,
+      "usd_source": "openrouter"
+    },
+    "nova-premier-v1": {
+      "input": 2.5,
+      "output": 12.5,
+      "currency": "usd",
+      "source": "openrouter",
+      "usd_input": 2.5,
+      "usd_output": 12.5,
+      "usd_source": "openrouter"
+    },
+    "sonar-pro-search": {
+      "input": 3.0,
+      "output": 15.0,
+      "currency": "usd",
+      "source": "openrouter",
+      "usd_input": 3.0,
+      "usd_output": 15.0,
+      "usd_source": "openrouter"
+    },
+    "voxtral-small-24b": {
+      "input": 0.1,
+      "output": 0.3,
+      "currency": "usd",
+      "source": "openrouter",
+      "usd_input": 0.1,
+      "usd_output": 0.3,
+      "usd_source": "openrouter"
+    },
+    "gpt-oss-safeguard-20b": {
+      "input": 0.075,
+      "output": 0.3,
+      "currency": "usd",
+      "source": "openrouter",
+      "usd_input": 0.075,
+      "usd_output": 0.3,
+      "usd_source": "openrouter"
+    },
+    "minimax-m2": {
+      "input": 0.255,
+      "output": 1.02,
+      "currency": "usd",
+      "source": "openrouter",
+      "usd_input": 0.255,
+      "usd_output": 1.02,
+      "usd_source": "openrouter"
+    },
+    "gpt-5-image-mini": {
+      "input": 2.5,
+      "output": 2.0,
+      "currency": "usd",
+      "source": "openrouter",
+      "usd_input": 2.5,
+      "usd_output": 2.0,
+      "usd_source": "openrouter"
+    },
+    "qwen3-vl-8b-instruct": {
+      "input": 0.25,
+      "output": 0.75,
+      "currency": "usd",
+      "source": "openrouter",
+      "usd_input": 0.25,
+      "usd_output": 0.75,
+      "usd_source": "openrouter"
+    },
+    "gpt-5-image": {
+      "input": 10.0,
+      "output": 10.0,
+      "currency": "usd",
+      "source": "openrouter",
+      "usd_input": 10.0,
+      "usd_output": 10.0,
+      "usd_source": "openrouter"
+    },
+    "qwen3-vl-30b-a3b": {
+      "input": 0.29,
+      "output": 1.0,
+      "currency": "usd",
+      "source": "openrouter",
+      "usd_input": 0.29,
+      "usd_output": 1.0,
+      "usd_source": "openrouter"
+    },
+    "qwen3-vl-30b-a3b-instruct": {
+      "input": 0.15,
+      "output": 0.6,
+      "currency": "usd",
+      "source": "openrouter",
+      "usd_input": 0.15,
+      "usd_output": 0.6,
+      "usd_source": "openrouter"
+    },
+    "cydonia-24b-v4-1": {
+      "input": 0.3,
+      "output": 0.5,
+      "currency": "usd",
+      "source": "openrouter",
+      "usd_input": 0.3,
+      "usd_output": 0.5,
+      "usd_source": "openrouter"
+    },
+    "relace-apply-3": {
+      "input": 0.85,
+      "output": 1.25,
+      "currency": "usd",
+      "source": "openrouter",
+      "usd_input": 0.85,
+      "usd_output": 1.25,
+      "usd_source": "openrouter"
+    },
+    "qwen3-next-80b-a3b": {
+      "input": 0.15,
+      "output": 1.2,
+      "currency": "usd",
+      "source": "openrouter",
+      "usd_input": 0.15,
+      "usd_output": 1.2,
+      "usd_source": "openrouter"
+    },
+    "qwen3-next-80b-a3b-instruct": {
+      "input": 0.09,
+      "output": 1.1,
+      "currency": "usd",
+      "source": "openrouter",
+      "usd_input": 0.09,
+      "usd_output": 1.1,
+      "usd_source": "openrouter"
+    },
+    "hermes-4-405b": {
+      "input": 1.0,
+      "output": 3.0,
+      "currency": "usd",
+      "source": "openrouter",
+      "usd_input": 1.0,
+      "usd_output": 3.0,
+      "usd_source": "openrouter"
+    },
+    "deepseek-chat-v3-1": {
+      "input": 0.25,
+      "output": 0.95,
+      "currency": "usd",
+      "source": "openrouter",
+      "usd_input": 0.25,
+      "usd_output": 0.95,
+      "usd_source": "openrouter"
+    },
+    "mistral-medium-3-1": {
+      "input": 0.4,
+      "output": 2.0,
+      "currency": "usd",
+      "source": "openrouter",
+      "usd_input": 0.4,
+      "usd_output": 2.0,
+      "usd_source": "openrouter"
+    },
+    "codestral": {
+      "input": 0.3,
+      "output": 0.9,
+      "currency": "usd",
+      "source": "openrouter",
+      "usd_input": 0.3,
+      "usd_output": 0.9,
+      "usd_source": "openrouter"
+    },
+    "qwen3-coder-30b-a3b-instruct": {
+      "input": 0.07,
+      "output": 0.28,
+      "currency": "usd",
+      "source": "openrouter",
+      "usd_input": 0.07,
+      "usd_output": 0.28,
+      "usd_source": "openrouter"
+    },
+    "qwen3-30b-a3b-instruct": {
+      "input": 0.1,
+      "output": 0.3,
+      "currency": "usd",
+      "source": "openrouter",
+      "usd_input": 0.1,
+      "usd_output": 0.3,
+      "usd_source": "openrouter"
+    },
+    "qwen3-coder": {
+      "input": 0.3,
+      "output": 1.0,
+      "currency": "usd",
+      "source": "openrouter",
+      "usd_input": 0.3,
+      "usd_output": 1.0,
+      "usd_source": "openrouter"
+    },
+    "ui-tars-1-5-7b": {
+      "input": 0.1,
+      "output": 0.2,
+      "currency": "usd",
+      "source": "openrouter",
+      "usd_input": 0.1,
+      "usd_output": 0.2,
+      "usd_source": "openrouter"
+    },
+    "dolphin-mistral-24b-venice-edition": {
+      "input": 0.2,
+      "output": 0.9,
+      "currency": "usd",
+      "source": "openrouter",
+      "usd_input": 0.2,
+      "usd_output": 0.9,
+      "usd_source": "openrouter"
+    },
+    "morph-v3-large": {
+      "input": 0.9,
+      "output": 1.9,
+      "currency": "usd",
+      "source": "openrouter",
+      "usd_input": 0.9,
+      "usd_output": 1.9,
+      "usd_source": "openrouter"
+    },
+    "morph-v3-fast": {
+      "input": 0.8,
+      "output": 1.2,
+      "currency": "usd",
+      "source": "openrouter",
+      "usd_input": 0.8,
+      "usd_output": 1.2,
+      "usd_source": "openrouter"
+    },
+    "mistral-small-3-2-24b-instruct": {
+      "input": 0.075,
+      "output": 0.2,
+      "currency": "usd",
+      "source": "openrouter",
+      "usd_input": 0.075,
+      "usd_output": 0.2,
+      "usd_source": "openrouter"
+    },
+    "minimax-m1": {
+      "input": 0.55,
+      "output": 2.2,
+      "currency": "usd",
+      "source": "openrouter",
+      "usd_input": 0.55,
+      "usd_output": 2.2,
+      "usd_source": "openrouter"
+    },
+    "mistral-medium-3": {
+      "input": 0.4,
+      "output": 2.0,
+      "currency": "usd",
+      "source": "openrouter",
+      "usd_input": 0.4,
+      "usd_output": 2.0,
+      "usd_source": "openrouter"
+    },
+    "deepseek-chat-v3": {
+      "input": 0.29,
+      "output": 1.14,
+      "currency": "usd",
+      "source": "openrouter",
+      "usd_input": 0.29,
+      "usd_output": 1.14,
+      "usd_source": "openrouter"
+    },
+    "mistral-small-3-1-24b-instruct": {
+      "input": 0.351,
+      "output": 0.555,
+      "currency": "usd",
+      "source": "openrouter",
+      "usd_input": 0.351,
+      "usd_output": 0.555,
+      "usd_source": "openrouter"
+    },
+    "gemma-3-4b-it": {
+      "input": 0.05,
+      "output": 0.1,
+      "currency": "usd",
+      "source": "openrouter",
+      "usd_input": 0.05,
+      "usd_output": 0.1,
+      "usd_source": "openrouter"
+    },
+    "gemma-3-12b-it": {
+      "input": 0.05,
+      "output": 0.15,
+      "currency": "usd",
+      "source": "openrouter",
+      "usd_input": 0.05,
+      "usd_output": 0.15,
+      "usd_source": "openrouter"
+    },
+    "command-a": {
+      "input": 2.5,
+      "output": 10.0,
+      "currency": "usd",
+      "source": "openrouter",
+      "usd_input": 2.5,
+      "usd_output": 10.0,
+      "usd_source": "openrouter"
+    },
+    "reka-flash-3": {
+      "input": 0.1,
+      "output": 0.2,
+      "currency": "usd",
+      "source": "openrouter",
+      "usd_input": 0.1,
+      "usd_output": 0.2,
+      "usd_source": "openrouter"
+    },
+    "gemma-3-27b-it": {
+      "input": 0.08,
+      "output": 0.35,
+      "currency": "usd",
+      "source": "openrouter",
+      "usd_input": 0.08,
+      "usd_output": 0.35,
+      "usd_source": "openrouter"
+    },
+    "skyfall-36b-v2": {
+      "input": 0.55,
+      "output": 0.8,
+      "currency": "usd",
+      "source": "openrouter",
+      "usd_input": 0.55,
+      "usd_output": 0.8,
+      "usd_source": "openrouter"
+    },
+    "sonar-reasoning-pro": {
+      "input": 2.0,
+      "output": 8.0,
+      "currency": "usd",
+      "source": "openrouter",
+      "usd_input": 2.0,
+      "usd_output": 8.0,
+      "usd_source": "openrouter"
+    },
+    "sonar-pro": {
+      "input": 3.0,
+      "output": 15.0,
+      "currency": "usd",
+      "source": "openrouter",
+      "usd_input": 3.0,
+      "usd_output": 15.0,
+      "usd_source": "openrouter"
+    },
+    "sonar-deep-research": {
+      "input": 2.0,
+      "output": 8.0,
+      "currency": "usd",
+      "source": "openrouter",
+      "usd_input": 2.0,
+      "usd_output": 8.0,
+      "usd_source": "openrouter"
+    },
+    "mistral-saba": {
+      "input": 0.2,
+      "output": 0.6,
+      "currency": "usd",
+      "source": "openrouter",
+      "usd_input": 0.2,
+      "usd_output": 0.6,
+      "usd_source": "openrouter"
+    },
+    "aion-rp-llama-3-1-8b": {
+      "input": 0.8,
+      "output": 1.6,
+      "currency": "usd",
+      "source": "openrouter",
+      "usd_input": 0.8,
+      "usd_output": 1.6,
+      "usd_source": "openrouter"
+    },
+    "qwen2-5-vl-72b-instruct": {
+      "input": 0.8,
+      "output": 1.0,
+      "currency": "usd",
+      "source": "openrouter",
+      "usd_input": 0.8,
+      "usd_output": 1.0,
+      "usd_source": "openrouter"
+    },
+    "mistral-small-24b-instruct": {
+      "input": 0.05,
+      "output": 0.08,
+      "currency": "usd",
+      "source": "openrouter",
+      "usd_input": 0.05,
+      "usd_output": 0.08,
+      "usd_source": "openrouter"
+    },
+    "sonar": {
+      "input": 1.0,
+      "output": 1.0,
+      "currency": "usd",
+      "source": "openrouter",
+      "usd_input": 1.0,
+      "usd_output": 1.0,
+      "usd_source": "openrouter"
+    },
+    "minimax-01": {
+      "input": 0.2,
+      "output": 1.1,
+      "currency": "usd",
+      "source": "openrouter",
+      "usd_input": 0.2,
+      "usd_output": 1.1,
+      "usd_source": "openrouter"
+    },
+    "phi-4": {
+      "input": 0.07,
+      "output": 0.14,
+      "currency": "usd",
+      "source": "openrouter",
+      "usd_input": 0.07,
+      "usd_output": 0.14,
+      "usd_source": "openrouter"
+    },
+    "command-r7b-12-2024": {
+      "input": 0.0375,
+      "output": 0.15,
+      "currency": "usd",
+      "source": "openrouter",
+      "usd_input": 0.0375,
+      "usd_output": 0.15,
+      "usd_source": "openrouter"
+    },
+    "nova-lite-v1": {
+      "input": 0.06,
+      "output": 0.24,
+      "currency": "usd",
+      "source": "openrouter",
+      "usd_input": 0.06,
+      "usd_output": 0.24,
+      "usd_source": "openrouter"
+    },
+    "nova-micro-v1": {
+      "input": 0.035,
+      "output": 0.14,
+      "currency": "usd",
+      "source": "openrouter",
+      "usd_input": 0.035,
+      "usd_output": 0.14,
+      "usd_source": "openrouter"
+    },
+    "nova-pro-v1": {
+      "input": 0.8,
+      "output": 3.2,
+      "currency": "usd",
+      "source": "openrouter",
+      "usd_input": 0.8,
+      "usd_output": 3.2,
+      "usd_source": "openrouter"
+    },
+    "qwen-2-5-coder-32b-instruct": {
+      "input": 0.66,
+      "output": 1.0,
+      "currency": "usd",
+      "source": "openrouter",
+      "usd_input": 0.66,
+      "usd_output": 1.0,
+      "usd_source": "openrouter"
+    },
+    "unslopnemo-12b": {
+      "input": 0.4,
+      "output": 0.4,
+      "currency": "usd",
+      "source": "openrouter",
+      "usd_input": 0.4,
+      "usd_output": 0.4,
+      "usd_source": "openrouter"
+    },
+    "magnum-v4-72b": {
+      "input": 2.5,
+      "output": 5.0,
+      "currency": "usd",
+      "source": "openrouter",
+      "usd_input": 2.5,
+      "usd_output": 5.0,
+      "usd_source": "openrouter"
+    },
+    "qwen-2-5-7b-instruct": {
+      "input": 0.1,
+      "output": 0.2,
+      "currency": "usd",
+      "source": "openrouter",
+      "usd_input": 0.1,
+      "usd_output": 0.2,
+      "usd_source": "openrouter"
+    },
+    "qwen-2-5-72b-instruct": {
+      "input": 0.36,
+      "output": 0.4,
+      "currency": "usd",
+      "source": "openrouter",
+      "usd_input": 0.36,
+      "usd_output": 0.4,
+      "usd_source": "openrouter"
+    },
+    "command-r-08-2024": {
+      "input": 0.15,
+      "output": 0.6,
+      "currency": "usd",
+      "source": "openrouter",
+      "usd_input": 0.15,
+      "usd_output": 0.6,
+      "usd_source": "openrouter"
+    },
+    "command-r-plus-08-2024": {
+      "input": 2.5,
+      "output": 10.0,
+      "currency": "usd",
+      "source": "openrouter",
+      "usd_input": 2.5,
+      "usd_output": 10.0,
+      "usd_source": "openrouter"
+    },
+    "l3-1-euryale-70b": {
+      "input": 0.85,
+      "output": 0.85,
+      "currency": "usd",
+      "source": "openrouter",
+      "usd_input": 0.85,
+      "usd_output": 0.85,
+      "usd_source": "openrouter"
+    },
+    "hermes-3-llama-3-1-70b": {
+      "input": 0.7,
+      "output": 0.7,
+      "currency": "usd",
+      "source": "openrouter",
+      "usd_input": 0.7,
+      "usd_output": 0.7,
+      "usd_source": "openrouter"
+    },
+    "hermes-3-llama-3-1-405b": {
+      "input": 1.0,
+      "output": 1.0,
+      "currency": "usd",
+      "source": "openrouter",
+      "usd_input": 1.0,
+      "usd_output": 1.0,
+      "usd_source": "openrouter"
+    },
+    "l3-lunaris-8b": {
+      "input": 0.04,
+      "output": 0.05,
+      "currency": "usd",
+      "source": "openrouter",
+      "usd_input": 0.04,
+      "usd_output": 0.05,
+      "usd_source": "openrouter"
+    },
+    "mistral-nemo": {
+      "input": 0.029,
+      "output": 0.03,
+      "currency": "usd",
+      "source": "openrouter",
+      "usd_input": 0.029,
+      "usd_output": 0.03,
+      "usd_source": "openrouter"
+    },
+    "gemma-2-27b-it": {
+      "input": 0.65,
+      "output": 0.65,
+      "currency": "usd",
+      "source": "openrouter",
+      "usd_input": 0.65,
+      "usd_output": 0.65,
+      "usd_source": "openrouter"
+    },
+    "mixtral-8x22b-instruct": {
+      "input": 2.0,
+      "output": 6.0,
+      "currency": "usd",
+      "source": "openrouter",
+      "usd_input": 2.0,
+      "usd_output": 6.0,
+      "usd_source": "openrouter"
+    },
+    "gpt-3-5-turbo-16k": {
+      "input": 3.0,
+      "output": 4.0,
+      "currency": "usd",
+      "source": "openrouter",
+      "usd_input": 3.0,
+      "usd_output": 4.0,
+      "usd_source": "openrouter"
+    },
+    "weaver": {
+      "input": 0.4,
+      "output": 0.75,
+      "currency": "usd",
+      "source": "openrouter",
+      "usd_input": 0.4,
+      "usd_output": 0.75,
+      "usd_source": "openrouter"
+    },
+    "remm-slerp-l2-13b": {
+      "input": 0.35,
+      "output": 0.65,
+      "currency": "usd",
+      "source": "openrouter",
+      "usd_input": 0.35,
+      "usd_output": 0.65,
+      "usd_source": "openrouter"
+    },
+    "mythomax-l2-13b": {
+      "input": 0.08,
+      "output": 0.11,
+      "currency": "usd",
+      "source": "openrouter",
+      "usd_input": 0.08,
+      "usd_output": 0.11,
+      "usd_source": "openrouter"
+    }
+  },
+  "aliases": {}
+}

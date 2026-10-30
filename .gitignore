@@ -1,0 +1,34 @@
+# ── 数据与运行时产物（仅存服务器本地，见 relay_scraper_README.md）──
+relay_data.db
+*.db
+*.db-shm
+*.db-wal
+backups/
+bench_out/
+watch.log*
+*.log
+_official_*.tmp
+
+# ── 站点配置含各站访问令牌与 API key，绝不入库 ──
+# 首次部署：cp stations.json.example stations.json 后填入自己的令牌
+stations.json
+
+# ── 生成的数据快照（可随时重新生成）──
+s.json
+norm_v8.*
+litellm_prices.json
+gpt_litellm_prices.csv
+history_*.csv
+
+# ── 临时调试脚本与截图 ──
+_*.py
+_*.cjs
+_*.js
+_*.html
+_*.png
+
+# ── 工具缓存 ──
+__pycache__/
+.pytest_cache/
+.playwright-cli/
+.codebuddy/

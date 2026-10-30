@@ -1,0 +1,23 @@
+{
+  "_comment": [
+    "站点私有计价规则：有些站的 /api/pricing 里 model_price 只是「内部额度单价」，",
+    "真实挂牌价 = model_price × 分组倍率 × multiplier，而 multiplier 硬编码在该站前端 bundle 里，",
+    "公开 API 不返回。这里按模型名前缀/精确名记录已核实的倍率与计价单位。",
+    "规则生效后：明细/汇总的 按次价格($/次)、按秒价格($/秒) 都会先乘上 multiplier。",
+    "未列入的模型保持原始 model_price（宁可少算，也不瞎猜）。"
+  ],
+  "Portix": {
+    "source": "https://www.portixapi.com/assets/js/index-CJnk7tKA.js",
+    "verified_at": "2026-10-20",
+    "formula": "display_price = model_price × group_ratio × multiplier",
+    "note": "该站 /api/pricing 返回的 quota_type 是 1，但前端展示分支用的是 quota_type=4 的换算表；happyhorse 系列在两张表里只出现在 ×90 分支，且标注 timeUnit=s（按秒）。已用 happyhorse-1.0-t2v 实测核对：0.0014706 × 0.715 × 90 = 0.09463 ≈ 站点显示的 $0.0946/秒。",
+    "rules": [
+      {
+        "prefix": ["happyhorse-1.0", "happyhorse-1.1"],
+        "multiplier": 90,
+        "billing": "per_second",
+        "note": "站点前端：if name.startsWith('happyhorse-1.0'|'happyhorse-1.1') r=90 → isPerTime=true, timeUnit='s'"
+      }
+    ]
+  }
+}

@@ -1,0 +1,27 @@
+[
+  {
+    "name": "示例站（new-api 免鉴权）",
+    "enabled": true,
+    "domains": ["example-relay.com"],
+    "api_base": "https://example-relay.com",
+    "api_key": "",
+    "headers": {},
+    "cookie": "",
+    "recharge_rate": 1.0,
+    "notes": "充值比例以站方说明为准；大多数 new-api 系站点 /api/pricing 免鉴权可直接抓"
+  },
+  {
+    "name": "示例站（new-api 双头鉴权）",
+    "enabled": false,
+    "domains": ["auth-example.com"],
+    "api_base": "https://auth-example.com",
+    "api_key": "sk-xxxxxxxx（站内「令牌」页创建，用于模型级真实调用探测）",
+    "headers": {
+      "Authorization": "访问令牌（用户中心复制，裸令牌即可，不需要 Bearer 前缀）",
+      "New-Api-User": "数字用户ID（必须与令牌匹配，填用户名会报 format error）"
+    },
+    "cookie": "",
+    "recharge_rate": 7.3,
+    "notes": "Authorization + New-Api-User 两个头缺一不可；注意 /api/status 里的 usd_exchange_rate 只是汇率标记，不一定是充值比例"
+  }
+]
