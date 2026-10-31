@@ -273,6 +273,7 @@ CREATE TABLE IF NOT EXISTS model_availability (
     status TEXT NOT NULL,                -- listed 在售 | gone 下架 | probe_ok 可调用 | probe_fail 不可调用 | unknown 检测失败
     detail TEXT,                         -- 说明（如「新上架」「已下架」/ 错误摘要）
     latency_ms INTEGER,
+    ttft_ms INTEGER,                     -- 首 token 延迟（真实调用探针：流式读到首个字节的时间）
     FOREIGN KEY(station_id) REFERENCES stations(id)
 );
 CREATE INDEX IF NOT EXISTS idx_avail_sm ON model_availability(station_id, model_agg, id);
@@ -593,6 +594,10 @@ def _migrate(conn):
                       ("image_size_price", "TEXT")):
         if name not in cols("model_prices"):
             conn.execute(f"ALTER TABLE model_prices ADD COLUMN {name} {ddl}")
+    # 真实调用探针早就测出了 TTFT，以前落库时丢掉了；补列后每轮探测顺带存下来
+    for name, ddl in (("ttft_ms", "INTEGER"),):
+        if name not in cols("model_availability"):
+            conn.execute(f"ALTER TABLE model_availability ADD COLUMN {name} {ddl}")
     # 回填历史数据的规范名/家族名（索引必须在补列之后创建）
     conn.execute("CREATE INDEX IF NOT EXISTS idx_mp_canon ON model_prices(model_canon)")
     pending = conn.execute(
@@ -1955,6 +1960,13 @@ def parse_pricing(pricing: dict):
                 # 倍率是占位值（37.5 → $75/M），且这类模型不按 token 计价
                 rec["model_ratio"] = 0.0
                 rec["completion_ratio"] = 0.0
+        # ③ new-api 的 37.5 是统一占位倍率（等价 $75/M）：tiered_expr 的真实价在
+        #    billing_expr、媒体模型的真实价在价目表，两者都没有时它就是「站点未公示
+        #    真实价」的默认值。留着会被当成真价展示成 ¥75/M（37.5 × $2/M × 汇率）。
+        if (rec.get("model_ratio") or 0) == 37.5 \
+                and not rec.get("image_size_price") and not rec.get("video_resolution_price"):
+            rec["model_ratio"] = 0.0
+            rec["completion_ratio"] = 0.0
     # 分组倍率补全：group_ratio 只列「公开组」，首充/活动组（claude-first-topup 0.03、
     # openai-first-topup 0.015）的倍率在 group_definitions 里。只补「确实出现在
     # 某模型 enable_groups 中的 id」——group_definitions 还有 media/grok/claude-tmp
@@ -2728,11 +2740,15 @@ def save_snapshot(conn, station: dict, res: dict, force: bool = False):
     # 整份原始响应存档：内容未变则不重复存（只留 hash，读时沿上一条继承）
     raw_blob, raw_hash = pack_raw_pricing(res.get("pricing"))
 
-    if not force and version:
+    # 内容指纹 raw_hash（= pricing_content_hash，忽略数组顺序/每模型版本号）作主判据：
+    # 站点可能不改 pricing_version 却悄悄上下架模型，只看版本号会误判"未变"而不落库，
+    # 导致前端仍显示已下线模型。只有 raw_hash 与版本号都一致才算未变；
+    # 无版本号的站也用内容指纹去重，避免每次抓取都重复落库同内容。
+    if not force and raw_hash:
         last = conn.execute(
             "SELECT id, pricing_version, page_prices, raw_pricing, raw_hash FROM snapshots"
             " WHERE station_id=? AND ok=1 ORDER BY id DESC LIMIT 1", (station["id"],)).fetchone()
-        if last and last["pricing_version"] == version:
+        if last and last["raw_hash"] == raw_hash and last["pricing_version"] == version:
             # 未变但仍补抓价格页（仅当该快照尚无 page_prices），避免自定义组价长期缺失
             if station.get("page_prices") and not last["page_prices"] and models:
                 try:
@@ -3245,7 +3261,7 @@ def run_scrape_round(conn, args) -> dict:
                   f"{(res.get('errors') or ['?'])[0][:60]}{hint}")
         elif outcome == "unchanged":
             n_unch += 1
-            print(f"  [未变] {s['name']:<14} pricing_version 未变化，跳过落库")
+            print(f"  [未变] {s['name']:<14} 内容/版本未变化，跳过落库")
         else:
             n_new += 1
             models, groups, version = parse_pricing(res["pricing"])
@@ -3267,8 +3283,11 @@ def run_scrape_round(conn, args) -> dict:
             " detail, latency_ms) VALUES(?,?,?,?,?,?,?)",
             [(sid, key, name, ts, status, detail, None)
              for sid, key, name, status, detail in avail_pending])
-        conn.commit()
         print(f"  [可用性] 新上架 {n_up}，已下架 {n_down}（明细见 `availability --report`）")
+    # 提交本轮全部写入（含上面的 stations.last_check）。
+    # 必须在备份之前无条件提交：带着未提交的写事务调 conn.backup() 会无限重试卡死，
+    # 而且 last_check 会丢失——长期不调价的站会被误判成"没在抓"。
+    conn.commit()
     # 每轮抓取后自动备份：数据是几个月攒下来的，丢了没法重抓
     if not getattr(args, "no_backup", False):
         try:
@@ -3468,7 +3487,7 @@ def _model_probe_map(conn, n: int = 12, hours: int = 72) -> dict:
     try:
         cutoff = (datetime.now(timezone.utc) - timedelta(hours=hours)).isoformat(timespec="seconds")
         rows = conn.execute(
-            "SELECT station_id, model_agg, status, ts FROM model_availability"
+            "SELECT station_id, model_agg, status, ts, ttft_ms FROM model_availability"
             " WHERE status IN ('probe_ok','probe_fail') ORDER BY id").fetchall()
     except Exception:                       # model_availability 表缺失/无真实探测
         return out
@@ -3481,11 +3500,21 @@ def _model_probe_map(conn, n: int = 12, hours: int = 72) -> dict:
             d["_tot"] += 1
             if ok:
                 d["_ok"] += 1
+                # 只有成功调用的首字延迟才有意义；失败的耗时不代表服务速度
+                if r["ttft_ms"] is not None:
+                    d.setdefault("_ttft", []).append(int(r["ttft_ms"]))
     for d in out.values():
         d["hist"] = d["hist"][-n:]
         if d["_tot"]:
             d["avail"] = {"p": round(d["_ok"] / d["_tot"] * 100, 1),
                           "ok": d["_ok"], "tot": d["_tot"], "src": "probe"}
+        # 窗口内成功探测的 TTFT 中位数：样本少、单次抖动大，中位数比均值稳
+        tts = sorted(d.pop("_ttft", []) or [])
+        if tts:
+            mid = len(tts) // 2
+            d["ttft"] = {"p50": tts[mid] if len(tts) % 2
+                         else round((tts[mid - 1] + tts[mid]) / 2),
+                         "n": len(tts)}
         d.pop("_ok", None)
         d.pop("_tot", None)
     return out
@@ -3612,6 +3641,11 @@ def iter_detail_rows(conn, model_agg=None, station_id=None):
                 if price_src == "倍率未知" and billing == "per_token":
                     # 倍率未知时「实付」无法计算，宁可留空也不拿 1.0 兜底冒充
                     ei = eo = ""
+                if billing == "per_token" and not (inp or out):
+                    # 站点未公示 token 价（ratio=0，含 37.5 占位值被归零的情形）。
+                    # 输入/输出/缓存价全部留空，单站页显示「-」，避免 ¥0 被误读成免费。
+                    ei = eo = ""
+                    crd = cwr = None
                 pay_cny = (ei * paid_fx) if ei != "" else ""
                 disc = None
                 if off_in_cny and pay_cny:
@@ -3620,7 +3654,8 @@ def iter_detail_rows(conn, model_agg=None, station_id=None):
                 # 样例请求成本：命中阶梯时按阶梯倍率计价（输入长度即样例输入）
                 r_in, r_out = tier_for(tiers, REF_TOKENS_IN, m["model_ratio"],
                                        m["completion_ratio"], gratio)
-                sample_cost = (REF_TOKENS_IN * r_in + REF_TOKENS_OUT * r_out) / 1_000_000
+                sample_cost = ((REF_TOKENS_IN * r_in + REF_TOKENS_OUT * r_out) / 1_000_000
+                               if ei != "" else "")
                 # 按次/按秒单价：页面权威价（每秒/每次）> 站点私有倍率 > model_price 原值
                 if sec is not None:
                     unit_price = sec * (rule_mult or 1)
@@ -3819,9 +3854,16 @@ def build_summary_rows(conn, model_agg=None):
     model_avail = _model_avail_by_key(model_probe)
     station_ids = {name: sid for sid, name in probe_names.items()}
     bench_map = bench_metrics_by_station(conn)   # 站级性能实测（TTFT/缓存命中），未测为缺
+    offline = _offline_model_aggs(conn)         # 已下架模型（最新可用性状态 gone）
     for r in iter_detail_rows(conn, model_agg):
         billing = r["计费方式"]
         pair = (agg_key(r["模型规范名"]), billing)
+        # 已下架模型在该站不可购买：不计入「在售站点」、不作为最低价候选，
+        # 避免把死价当最低价展示（如 aicost 部分模型下线后价格仍残留）
+        _sid = station_ids.get(r["站点"])
+        _agg = r.get("model_agg") or agg_key(r["模型规范名"])
+        if _sid is not None and (_sid, _agg) in offline:
+            continue
         stations.setdefault(pair, set())
         # 只统计可用分组：不可用分组（模型未开通）的价格用户买不到，
         # 早期版本混入导致最低价系统性偏低（站点自己的工具只显示可用分组）
@@ -3884,8 +3926,11 @@ def build_summary_rows(conn, model_agg=None):
             # 最近 12 次状态：优先该模型在最低价站的真实调用探测，回退站点可达性
             "最近12次状态": (model_probe.get((station_ids.get(r["站点"], -1), key), {}).get("hist")
                               or probe_hist.get(station_ids.get(r["站点"], -1), [])),
-            # 性能实测（api-bench，站级属性随最低价站带入；未测站点为 None → 前端显示「未测」）
-            "TTFT p50(ms)": (bench_map.get(r["站点"]) or {}).get("ttft_p50_ms"),
+            # 性能实测：优先「该站该模型」真实调用探测的 TTFT 中位数（模型级，更贴近实际使用），
+            # 该模型没被探测过才回退 api-bench 的站级 p50（未测站点为 None → 前端显示「未测」）
+            "TTFT p50(ms)": ((model_probe.get((station_ids.get(r["站点"], -1), key), {}) or {})
+                             .get("ttft", {}).get("p50")
+                             or (bench_map.get(r["站点"]) or {}).get("ttft_p50_ms")),
             "TTFT p90(ms)": (bench_map.get(r["站点"]) or {}).get("ttft_p90_ms"),
             "缓存命中%": (bench_map.get(r["站点"]) or {}).get("cache_hit_pct"),
             "实测时间": (bench_map.get(r["站点"]) or {}).get("ts"),
@@ -4153,6 +4198,8 @@ def compare_rows(conn, canon: str):
         s = sstats.get(sid)
         r["72小时可用率"] = (m.get("avail") if m else None) or (s.get("avail") if s else None)
         r["最近12次状态"] = (m.get("hist") if m else None) or (s.get("hist") if s else [])
+        # 该站该模型的真实调用首字延迟（与可用率同源，不必再单独跑 api-bench）
+        r["TTFT(ms)"] = (m.get("ttft") or {}).get("p50") if m else None
     return rows
 
 
@@ -4395,12 +4442,11 @@ h1{margin:0;font-size:21px;font-weight:750;letter-spacing:-.01em;line-height:1.2
 .caliber b{font-weight:800;color:#3d7fa6;white-space:nowrap}
 .caliber a{color:#7c5cd6;font-weight:650;text-decoration:none}
 .caliber a:hover{text-decoration:underline}
-/* 视图容器：调价监控 / 站点总览 */
+/* 视图容器：调价监控 / 站点总览（选型顾问已独立成页，不再属于看板视图） */
 .view{display:none;margin-top:18px}
-body.v-changes #viewChanges,body.v-stations #viewStations,body.v-selector #viewSelector{display:block}
+body.v-changes #viewChanges,body.v-stations #viewStations{display:block}
 body.v-changes .bar,body.v-changes .kinds,body.v-changes #mainTable,body.v-changes .stats,
-body.v-stations .bar,body.v-stations .kinds,body.v-stations #mainTable,body.v-stations .stats,
-body.v-selector .bar,body.v-selector .kinds,body.v-selector #mainTable,body.v-selector .stats{display:none}
+body.v-stations .bar,body.v-stations .kinds,body.v-stations #mainTable,body.v-stations .stats{display:none}
 /* ── 选型顾问：左表单右结果，同看板果冻糖面板 ── */
 .sel-grid{display:grid;grid-template-columns:330px 1fr;gap:16px;align-items:start}
 @media(max-width:900px){.sel-grid{grid-template-columns:1fr}}
@@ -4409,9 +4455,15 @@ body.v-selector .bar,body.v-selector .kinds,body.v-selector #mainTable,body.v-se
 .sel-form label{display:flex;flex-direction:column;gap:4px;font-size:11.5px;font-weight:700;
   color:var(--ink-2)}
 .sel-form .hint{font-weight:550;font-size:10.5px;color:var(--ink-3)}
-.sel-form select,.sel-form input{padding:7px 10px;border-radius:10px;font-size:12.5px;
-  border:1.5px solid rgba(169,146,240,.35);background:#fff;color:var(--ink)}
+.sel-form select,.sel-form input{width:100%;min-width:0;padding:7px 10px;border-radius:10px;
+  font-size:12.5px;border:1.5px solid rgba(169,146,240,.35);background-color:#fff;color:var(--ink)}
+/* 注意不能用 background 简写：它会顺带把 background-image 清空、
+   background-repeat 重置为 repeat，导致 hover/focus 时下拉箭头 SVG
+   被平铺满整个控件（视觉上像铺了一层花纹）。这里只改底色。 */
 .sel-form .row2{display:grid;grid-template-columns:1fr 1fr;gap:9px}
+/* 网格子项默认 min-width:auto 不能收缩：input 的固有宽度(~180px)会把
+   row2 两列撑出卡片、连带整页横向溢出，必须显式放开收缩限制 */
+.sel-form label,.sel-form .row2>label{min-width:0}
 .sel-form input[type=range]{accent-color:var(--sakura-deep);padding:0}
 .sel-out{display:flex;flex-direction:column;gap:12px;min-width:0}
 .sel-top{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:10px}
@@ -4606,6 +4658,41 @@ button.primary:hover{transform:translateY(-2px) scale(1.03);
 button.primary:active{transform:translateY(1px) scale(.99);
   box-shadow:inset 0 4px 10px rgba(190,60,120,.45),inset 0 -1px 0 rgba(255,255,255,.6)}
 .bar-actions{display:flex;gap:9px;align-items:center;margin-left:auto}
+/* 紧凑列开关：放在表格右上角空位，做成「实心糖果按钮」——
+   页面本体是浅粉白，这里用饱和的粉/紫实底 + 白字，对比度拉满，一眼能看到 */
+.widebtn{flex:0 0 auto;margin-left:auto;height:34px;padding:0 17px;border-radius:999px;
+  border:1.5px solid rgba(255,255,255,.98);cursor:pointer;white-space:nowrap;
+  color:#fff;font-size:12.5px;font-weight:800;letter-spacing:.02em;
+  background:linear-gradient(180deg,#ff9dbb 0%,#f56f9d 52%,#e04f86 100%);
+  box-shadow:inset 0 2px 1px rgba(255,255,255,.6),
+             inset 0 -6px 12px -8px rgba(180,40,110,.6),
+             0 8px 18px -10px rgba(255,141,176,.95);
+  transition:transform var(--t1) var(--spring),box-shadow var(--t2) var(--ease),
+             background var(--t2) var(--ease)}
+/* 必须连 color/background 一起写：全局 button:hover 的权重(0,1,1)高于
+   .widebtn(0,1,0)，只写 transform 的话悬停时白字会被它抢回深色 */
+.widebtn:hover{transform:translateY(-2px) scale(1.03);color:#fff;
+  background:linear-gradient(180deg,#ff9dbb 0%,#f56f9d 52%,#e04f86 100%);
+  box-shadow:inset 0 2px 1px rgba(255,255,255,.6),
+             inset 0 -6px 12px -8px rgba(180,40,110,.6),
+             0 12px 22px -10px rgba(255,141,176,1)}
+.widebtn:active{transform:translateY(1px) scale(.99)}
+/* 展开态换成紫色实底：与「收窄」态在颜色上区分开，不用读文字也知道当前是全列 */
+.widebtn.on{background:linear-gradient(180deg,#a78bec 0%,#8b6fe0 52%,#7154c9 100%);
+  box-shadow:inset 0 2px 1px rgba(255,255,255,.55),
+             inset 0 -6px 12px -8px rgba(70,40,150,.6),
+             0 8px 18px -10px rgba(139,111,224,.95)}
+.widebtn.on:hover{color:#fff;
+  background:linear-gradient(180deg,#a78bec 0%,#8b6fe0 52%,#7154c9 100%);
+  box-shadow:inset 0 2px 1px rgba(255,255,255,.55),
+             inset 0 -6px 12px -8px rgba(70,40,150,.6),
+             0 12px 22px -10px rgba(139,111,224,1)}
+/* 触屏档位：跟其它控件一样把可点区域加到 38/42px */
+@media(max-width:720px){.widebtn{height:38px}}
+@media(max-width:480px){.widebtn{height:42px}}
+/* 列弹层里的提示条：说明紧凑模式下勾选为什么没立刻生效 */
+.colpop .cp-tip{font-size:11px;line-height:1.55;color:#b0557f;background:#fff2f8;
+  border-radius:10px;padding:6px 9px;margin-bottom:8px}
 .chk{display:inline-flex;align-items:center;gap:7px;font-size:12px;color:var(--ink-2);font-weight:550;
   padding:0 8px;cursor:pointer;user-select:none;white-space:nowrap;transition:color var(--t1) var(--ease)}
 .chk:hover{color:var(--ink)}
@@ -4640,7 +4727,9 @@ button.primary:active{transform:translateY(1px) scale(.99);
 .colpop .cp-grp:first-of-type{margin-top:2px}
 
 /* ───────── 分段控件：胶囊里的果冻滑块 ───────── */
-.kinds{position:relative;display:inline-flex;gap:3px;margin:16px 0 2px;padding:5px;
+/* 类别胶囊与紧凑列开关同一行：胶囊靠左，开关靠右顶到表格右上角 */
+.kindrow{display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin:16px 0 2px}
+.kinds{position:relative;display:inline-flex;gap:3px;margin:0;padding:5px;
   border-radius:999px;border:1.5px solid rgba(255,255,255,.95);
   background:rgba(255,255,255,.62);
   box-shadow:inset 0 2px 6px rgba(146,116,178,.14),inset 0 -1px 0 rgba(255,255,255,.95);
@@ -4684,7 +4773,8 @@ button.primary:active{transform:translateY(1px) scale(.99);
 .ch-legend .lg{display:inline-flex;align-items:center;gap:6px;white-space:nowrap}
 .ch-legend i{width:9px;height:9px;border-radius:50%;display:inline-block;flex:none;
   box-shadow:inset 0 1px 0 rgba(255,255,255,.9),0 2px 5px rgba(146,116,178,.35)}
-body.cmpmode .bar,body.cmpmode .kinds,body.cmpmode .stats,body.cmpmode #mainTable{display:none}
+body.cmpmode .bar,body.cmpmode .kinds,body.cmpmode .stats,body.cmpmode #mainTable,
+body.cmpmode .kindrow{display:none}
 body.cmpmode #chart:not(:empty){background:none;border:0;padding:0;margin:0;box-shadow:none;
   backdrop-filter:none;animation:none}
 
@@ -4762,6 +4852,22 @@ td.nowrap{white-space:nowrap}
   box-shadow:-9px 0 12px -7px rgba(146,116,178,.4)}
 #mainTable tbody tr:hover td.stick-r{background:rgba(255,214,227,.4)}
 #mainTable tbody tr.grp td.stick-r{background:linear-gradient(90deg,#f0e8ff,#e8f6ff 52%,#e6fbf3)}
+/* 已下架模型（可用性最新状态 gone）：整行灰显，提示"该站已无此模型"，不误导用户当在售价 */
+#mainTable tbody tr.off td{opacity:.42}
+#mainTable tbody tr.off:hover td{opacity:.7;background:rgba(255,214,227,.22)}
+#mainTable tbody tr.off .mlink{text-decoration:line-through;color:#9a93a8}
+/* 单站页「其它分组」展开行：与最优价主体行拉开一个视觉层级——
+   淡紫底 + 首列左侧强调条，一眼看出这是同模型展开出来的分组明细，
+   而不是和最优价行平级的独立条目 */
+#mainTable tbody tr.subg td{
+  background:linear-gradient(90deg,rgba(224,209,246,.78),rgba(239,231,253,.45) 55%,rgba(239,231,253,.24))}
+#mainTable tbody tr.subg td:first-child{box-shadow:inset 3px 0 0 rgba(169,146,240,.72)}
+#mainTable tbody tr.subg:hover td{background:rgba(224,212,247,.8)}
+#mainTable tbody tr.subg td.stick-r{
+  background:linear-gradient(90deg,rgba(238,230,252,.95),rgba(246,242,255,.9))}
+.badge-del{display:inline-block;margin-left:6px;padding:1px 6px;border-radius:7px;font-size:10px;
+  font-weight:700;letter-spacing:.04em;vertical-align:1px;color:#b06a3a;
+  background:linear-gradient(180deg,#fff3e6,#ffe7d2);border:1px solid rgba(214,140,80,.4)}
 /* 排序翻页感：旧内容先淡出一半再回满，制造"换了一批"的节奏，不做位移 */
 .swap{animation:dip 200ms var(--ease)}
 @keyframes dip{0%{opacity:1}40%{opacity:.28}100%{opacity:1}}
@@ -5027,8 +5133,8 @@ thead{top:60px}
       </div>
     </div>
     <div class="topacts">
-      <!-- 2026-10-28:原「← RelayLens」按钮移除——顶部已有全站导航条,品牌 logo 与「选站比价」项即回站入口 -->
-      <button class="tbtn" id="selBtn" onclick="toggleView('selector')" title="按你的负载与场景，用实测数据推荐该用哪家">选型顾问</button>
+      <!-- 2026-10-30:「选型顾问」已独立成同级页面(/selector.html)，入口在全站导航里，
+           这里只保留看板自身的页内视图，避免与看板产生交集 -->
       <button class="tbtn" id="chgBtn" onclick="toggleView('changes')">调价监控<span class="tbadge" id="chgN"></span></button>
       <button class="tbtn" id="stnBtn" onclick="toggleView('stations')">站点总览</button>
     </div>
@@ -5054,6 +5160,7 @@ thead{top:60px}
     <select id="fFamily"><option value="">全部系列</option></select>
     <select id="fModel"><option value="">全部模型版本</option></select>
     <label id="availWrap" class="chk" style="display:none"><input type="checkbox" id="fAvail" checked onchange="render()">只看可用分组</label>
+    <label id="offWrap" class="chk" style="display:none"><input type="checkbox" id="fHideOffline" onchange="render()">隐藏已下架</label>
     <div class="bar-actions">
       <div class="colwrap">
         <button id="colBtn" onclick="toggleColPop(event)" title="选择要显示的列">列<svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round"><path d="M6 9l6 6 6-6"/></svg></button>
@@ -5066,29 +5173,32 @@ thead{top:60px}
     </div>
   </div>
 
-  <nav class="kinds" id="kinds">
-    <span class="kind-ind" id="kindInd"></span>
-    <button class="kind" data-kind="" onclick="setKind('')">全部<span class="n"></span></button>
-    <button class="kind on" data-kind="text" onclick="setKind('text')">语言<span class="n"></span></button>
-    <button class="kind" data-kind="image" onclick="setKind('image')">图片<span class="n"></span></button>
-    <button class="kind" data-kind="video" onclick="setKind('video')">视频<span class="n"></span></button>
-    <button class="kind" data-kind="audio" onclick="setKind('audio')">音频<span class="n"></span></button>
-  </nav>
+  <!-- 类别胶囊在左、紧凑列开关在右：贴着表格右上角的空位，一眼就能看到 -->
+  <div class="kindrow">
+    <nav class="kinds" id="kinds">
+      <span class="kind-ind" id="kindInd"></span>
+      <button class="kind" data-kind="" onclick="setKind('')">全部<span class="n"></span></button>
+      <button class="kind on" data-kind="text" onclick="setKind('text')">语言<span class="n"></span></button>
+      <button class="kind" data-kind="image" onclick="setKind('image')">图片<span class="n"></span></button>
+      <button class="kind" data-kind="video" onclick="setKind('video')">视频<span class="n"></span></button>
+      <button class="kind" data-kind="audio" onclick="setKind('audio')">音频<span class="n"></span></button>
+    </nav>
+    <!-- 紧凑列开关：默认只显示决策必需的列，避免宽表把页面撑开 -->
+    <button id="wideBtn" class="widebtn" onclick="toggleCompact()">展开全列</button>
+  </div>
 
   <div class="card"><div id="chart"></div></div>
   <div class="tablescroll"><table id="mainTable"><thead id="thead"><tr></tr></thead><tbody id="tb"></tbody></table></div>
 
   <section class="view" id="viewChanges"></section>
   <section class="view" id="viewStations"></section>
-  <section class="view" id="viewSelector"></section>
 </div>
 <footer class="legend" id="legend">
   <b>口径说明</b>
   <span><i>实付(¥/M)</i>＝模型倍率 × 分组倍率 × $2/M × 充值比例，跨站可比</span>
   <span><i>内部$/M</i>＝该站自己的额度美元，未按充值比例折算，仅用于核对站内价目</span>
   <span><i>对比官方价%</i>＝实付价 ÷ 官方价，低于 100% 即比官方便宜</span>
-  <span><i>72h 可用率</i>＝近 3 天模型级真实调用探测的成功率</span>
-  <span><i>TTFT</i>＝api-bench 实测首字延迟（请求发出→首个输出 token），p50/p90 分位；<i>缓存命中%</i>＝同前缀连发剔除冷启动后的命中占比——真实扣费实测，未跑的站显示「未测」</span>
+  <span><i>可用率 / 首字延迟</i>＝模型级真实调用探测的实测数据。探针成本∝模型×站点，无法全量覆盖，故不在榜单展示，请到<a href="__SELF_BASE__/selector.html">选型顾问</a>按模型查看</span>
   <span><i>快</i>＝服务端预计算的汇总缓存，抓取后自动重建</span>
 </footer>
 <div class="toast" id="toast"></div>
@@ -5203,19 +5313,18 @@ function dataHint(){
   return '距上次抓取 '+h.toFixed(h<10?1:0)+' 小时';
 }
 // ---- 视图切换：调价监控 / 站点总览（与对比页同一套「聚焦模式」思路）----
+// 选型顾问已独立成页（/selector.html），不参与这里的视图切换，二者互不干扰。
 let curView='';
 function toggleView(v){
   const same=(curView===v);
   curView=same?'':v;
-  document.body.classList.remove('v-changes','v-stations','v-selector');
+  document.body.classList.remove('v-changes','v-stations');
   if(curView) document.body.classList.add('v-'+curView);
   document.getElementById('chgBtn').classList.toggle('on',curView==='changes');
   document.getElementById('stnBtn').classList.toggle('on',curView==='stations');
-  document.getElementById('selBtn').classList.toggle('on',curView==='selector');
   if(!curView){ document.getElementById('chart').innerHTML=''; return; }
   if(curView==='changes') loadChanges();
   else if(curView==='stations') loadStations();
-  else loadSelector();
 }
 function closeViews(){ toggleView(curView); }
 const CHG_RANGES={'7':168,'30':720,'90':2160};
@@ -5292,178 +5401,6 @@ function renderChanges(){
       :'<div class="empty"><div class="ring">∅</div><b>这段时间内没有价格变动</b>'
         +'<div>价格稳定，或抓取间隔内无变化</div></div>')
     +'</div>';
-}
-// ══════ 选型顾问（引擎复刻 RelayLens selector，UI 与看板同源）════════
-// 原则：①只用实测数据，缺维度重归一化降权而非编造 ②成本按你的真实负载算（含缓存命中收益）
-// ③被排除的选项与排除原因并列展示 ④TTFT/可用率未测的站如实标注
-const SEL_SCENES={
-  general:{label:'通用对话',  in:5000, out:800, hr:.5, w:{cost:40,stab:35,perf:25}},
-  code:   {label:'编程 Agent',in:10000,out:1500,hr:.6, w:{cost:30,stab:25,perf:45}},
-  office: {label:'办公批处理',in:400, out:150, hr:.1, w:{cost:45,stab:35,perf:20}},
-  long:   {label:'长文写作',  in:40000,out:3000,hr:.3, w:{cost:35,stab:30,perf:35}},
-  biz:    {label:'企业接入',  in:5000, out:800, hr:.5, w:{cost:20,stab:60,perf:20}},
-};
-let selInited=false;
-const selMoney=v=>v==null?'-':'¥'+(v>=1000?Math.round(v).toLocaleString('en-US'):v.toFixed(v<10?2:1));
-function loadSelector(){
-  const box=document.getElementById('viewSelector');
-  if(selInited){ return; }
-  box.innerHTML='<div class="panel"><div class="muted">正在加载模型清单…</div></div>';
-  fetch('/api/summary').then(r=>r.json()).then(d=>{
-    const models=[...new Map((d.rows||[])
-      .filter(r=>r['计费方式']==='per_token')
-      .map(r=>[r['模型规范名'],r])).values()]
-      .sort((a,b)=>(b['在售站数']||0)-(a['在售站数']||0));
-    box.innerHTML=selFormHtml(models);
-    selInited=true;
-    document.getElementById('selScene').dispatchEvent(new Event('change'));
-  }).catch(e=>{ box.innerHTML='<div class="panel"><div class="empty err"><div class="ring">!</div>'
-    +'<b>加载失败</b><div>'+esc(String(e))+'</div></div></div>'; });
-}
-function selFormHtml(models){
-  const opts=models.map(m=>'<option value="'+esc(m['模型规范名'])+'">'
-    +esc(m['模型规范名'])+'（'+(m['在售站数']||0)+' 站在售）</option>').join('');
-  const scenes=Object.entries(SEL_SCENES).map(([k,s])=>
-    '<option value="'+k+'">'+esc(s.label)+'</option>').join('');
-  return '<div class="panel"><div class="phead"><div><b>选型顾问</b>'
-    +'<span class="psub">按你的真实负载算月成本，按场景权重给综合推荐——只用实测数据，缺维度降权而非编造</span></div>'
-    +'<div class="pacts"><span class="backlink" onclick="closeViews()">← 返回列表</span></div></div>'
-    +'<div class="sel-grid"><div class="sel-form">'
-    +'<label>使用场景<select id="selScene" onchange="selApplyScene()">'+scenes+'</select></label>'
-    +'<label>目标模型<select id="selModel">'+(opts||'<option value="">（无按量计费模型）</option>')+'</select>'
-    +'<span class="hint">仅列出有跨站在售的按量计费模型</span></label>'
-    +'<div class="row2">'
-    +'<label>日请求数<input id="selDaily" type="number" min="1" value="100"></label>'
-    +'<label>缓存命中率<input id="selHr" type="range" min="0" max="95" value="50">'
-    +'<span class="hint" id="selHrVal">50%</span></label></div>'
-    +'<div class="row2">'
-    +'<label>平均输入 tokens<input id="selIn" type="number" min="1" value="5000"></label>'
-    +'<label>平均输出 tokens<input id="selOutTok" type="number" min="1" value="800"></label></div>'
-    +'<div class="row2">'
-    +'<label>月预算上限（¥，选填）<input id="selBudget" type="number" min="0" placeholder="不限"></label>'
-    +'<label>首字延迟要求<select id="selTtft"><option value="0">不限</option>'
-    +'<option value="3000">≤ 3s</option><option value="1500">≤ 1.5s</option></select>'
-    +'<span class="hint">未实测 TTFT 的站将被排除并说明</span></label></div>'
-    +'<button class="primary" onclick="runSelector()">生成推荐</button>'
-    +'<span class="hint">测算会发真实请求吗？——不会。全部基于已采集的价目与实测指标离线计算</span>'
-    +'</div><div class="sel-out" id="selOut">'
-    +'<div class="sel-note">选好左侧参数后点「生成推荐」。权重随场景变化：'
-    +Object.values(SEL_SCENES).map(s=>esc(s.label)+'（价'+s.w.cost+'/稳'+s.w.stab+'/性'+s.w.perf+'）').join(' · ')
-    +'</div></div></div></div>';
-}
-function selApplyScene(){
-  const s=SEL_SCENES[document.getElementById('selScene').value]||SEL_SCENES.general;
-  document.getElementById('selIn').value=s.in;
-  document.getElementById('selOutTok').value=s.out;
-  document.getElementById('selHr').value=Math.round(s.hr*100);
-  document.getElementById('selHrVal').textContent=Math.round(s.hr*100)+'%';
-}
-function runSelector(){
-  const model=document.getElementById('selModel').value;
-  if(!model){ toast('没有可选模型'); return; }
-  const daily=Math.max(1,+document.getElementById('selDaily').value||100);
-  const inTok=Math.max(1,+document.getElementById('selIn').value||5000);
-  const outTok=Math.max(1,+document.getElementById('selOutTok').value||800);
-  const hr=Math.min(.95,Math.max(0,+document.getElementById('selHr').value||0))/100;
-  const budget=+document.getElementById('selBudget').value||0;
-  const ttftReq=+document.getElementById('selTtft').value||0;
-  const scene=SEL_SCENES[document.getElementById('selScene').value]||SEL_SCENES.general;
-  const out=document.getElementById('selOut');
-  out.innerHTML='<div class="muted">正在计算…</div>';
-  Promise.all([
-    fetch('/api/compare?model='+encodeURIComponent(model)).then(r=>r.json()),
-    fetch('/api/bench?limit=200').then(r=>r.json())
-  ]).then(([cmp,bench])=>{
-    const ttftBy={};
-    (bench.rows||[]).forEach(b=>{
-      if(!b.ok||b.ttft_p50_ms==null) return;
-      if(!(b.station in ttftBy)||b.ttft_p50_ms<ttftBy[b.station]) ttftBy[b.station]=b.ttft_p50_ms;
-    });
-    // 每站只留成本最低的分组（同站多分组是渠道差异，选型时按最优渠道算）
-    const bySt={};
-    (cmp.rows||[]).forEach(r=>{
-      if(r['计费方式']!=='per_token') return;
-      if(r['实付输入(¥/M)']==null) return;
-      const st=r['站点'];
-      // 缓存读价未公示的站按输入价保守估算（宁可高估不虚低）
-      const cr=(r['实付缓存读(¥/M)']!=null)?r['实付缓存读(¥/M)']:r['实付输入(¥/M)'];
-      const perReq=(inTok*(1-hr)*r['实付输入(¥/M)']+inTok*hr*cr+outTok*r['实付输出(¥/M)'])/1e6;
-      const monthly=perReq*daily*30;
-      if(!(st in bySt)||monthly<bySt[st].monthly) bySt[st]={
-        station:st,group:r['分组'],monthly,input:r['实付输入(¥/M)'],
-        cacheMissing:r['实付缓存读(¥/M)']==null,
-        avail:(r['72小时可用率']&&r['72小时可用率'].p)!=null?r['72小时可用率'].p:null,
-        ttft:ttftBy[st]||null};
-    });
-    const cands=Object.values(bySt), rej=[];
-    cands.forEach(c=>{
-      if(budget&&c.monthly>budget)
-        rej.push({s:c.station,r:'月成本 '+selMoney(c.monthly)+' 超预算 '+selMoney(budget)});
-      else if(ttftReq&&c.ttft==null)
-        rej.push({s:c.station,r:'TTFT 未实测，无法确认 ≤'+(ttftReq/1000)+'s 的要求'});
-      else if(ttftReq&&c.ttft>ttftReq)
-        rej.push({s:c.station,r:'TTFT '+fmt(c.ttft)+'ms 超出 ≤'+(ttftReq/1000)+'s 要求'});
-    });
-    const ok=cands.filter(c=>!rej.some(x=>x.s===c.station));
-    if(!ok.length){
-      out.innerHTML='<div class="empty"><div class="ring">∅</div><b>没有满足条件的站点</b>'
-        +'<div>'+(rej.length?'全部 '+rej.length+' 个候选被排除，原因见下':'该模型暂无按量计费候选')+'</div></div>'
-        +(rej.length?'<div class="sel-rej">'+rej.map(x=>'<div><b>'+esc(x.s)+'</b>：'+esc(x.r)+'</div>').join('')+'</div>':'');
-      return;
-    }
-    const minCost=Math.min(...ok.map(c=>c.monthly));
-    ok.forEach(c=>{
-      c.cs=100*minCost/c.monthly;                       // 成本分：线性，最便宜=100
-      c.ss=(c.avail!=null)?c.avail:null;                // 稳定分：72h 可用率直取
-      c.ps=(c.ttft!=null)?Math.max(0,Math.min(100,100-(c.ttft-800)/(6000-800)*100)):null;
-      const w=scene.w, ws=[];
-      if(c.cs!=null)ws.push(w.cost); if(c.ss!=null)ws.push(w.stab); if(c.ps!=null)ws.push(w.perf);
-      const sum=ws.reduce((a,b)=>a+b,0)||1;
-      c.coverage=sum/(w.cost+w.stab+w.perf);
-      c.score=Math.round(((c.cs*w.cost+(c.ss||0)*w.stab+(c.ps||0)*w.perf)/sum)*10)/10;
-    });
-    ok.sort((a,b)=>b.score-a.score);
-    const cheap=[...ok].sort((a,b)=>a.monthly-b.monthly)[0];
-    const fast=[...ok].filter(c=>c.ttft!=null).sort((a,b)=>a.ttft-b.ttft)[0];
-    const stab=[...ok].filter(c=>c.ss!=null).sort((a,b)=>b.ss-a.ss)[0];
-    const card=(t,v,s,win)=>'<div class="sel-card'+(win?' win':'')+'"><div class="t">'+t
-      +'</div><div class="v">'+v+'</div><div class="s">'+s+'</div></div>';
-    let html='<div class="sel-top">'
-      +card('综合推荐',esc(ok[0].station),'综合 '+ok[0].score+' 分 · 月成本 '+selMoney(ok[0].monthly)
-        +' · TTFT '+(ok[0].ttft!=null?fmt(ok[0].ttft)+'ms':'未测')+' · 可用率 '
-        +(ok[0].ss!=null?fmt(ok[0].ss)+'%':'未测'),true)
-      +(cheap&&cheap!==ok[0]?card('最便宜',esc(cheap.station),'月成本 '+selMoney(cheap.monthly)
-        +'（'+esc(cheap.group)+' 组）· 综合 '+cheap.score+' 分'):'' )
-      +(fast?card('首字最快',esc(fast.station),'TTFT '+fmt(fast.ttft)+'ms · 月成本 '+selMoney(fast.monthly)):'')
-      +(stab&&stab!==ok[0]?card('最稳',esc(stab.station),'72h 可用率 '+fmt(stab.ss)+'%'):'')
-      +'</div>';
-    html+='<table class="sel-table"><thead><tr><th>站点</th><th>分组</th><th>月成本</th>'
-      +'<th>综合</th><th>价</th><th>稳</th><th>性</th><th>TTFT</th><th>72h可用</th></tr></thead><tbody>'
-      +ok.map(c=>{
-        const un='<span class="un">未测</span>';
-        const ms=v=>v==null?un:fmt(v)+'ms';
-        const pc=v=>v==null?un:fmt(v)+'%';
-        return '<tr><td><b>'+esc(c.station)+'</b></td><td class="muted">'+esc(c.group)+'</td>'
-          +'<td class="num">'+selMoney(c.monthly)+'</td><td class="num"><b>'+c.score+'</b>'
-          +(c.coverage<0.66?' <span class="un">低数据</span>':'')+'</td>'
-          +'<td class="num">'+fmt(Math.round(c.cs))+'</td>'
-          +'<td class="num">'+(c.ss!=null?fmt(Math.round(c.ss)):un)+'</td>'
-          +'<td class="num">'+(c.ps!=null?fmt(Math.round(c.ps)):un)+'</td>'
-          +'<td class="num">'+(c.ttft!=null?fmt(c.ttft)+'ms':un)+'</td>'
-          +'<td class="num">'+(c.ss!=null?pc(c.ss):un)+'</td></tr>';
-      }).join('')+'</tbody></table>';
-    const notes=[];
-    const cm=[...new Set(ok.filter(c=>c.cacheMissing).map(c=>c.station))];
-    if(cm.length) notes.push('「'+esc(cm.join('、'))+'」未公示缓存读价，缓存部分按输入价保守估算（实际可能更省）');
-    notes.push('月成本 =（输入×('+(100-Math.round(hr*100))+'%直连 + '+Math.round(hr*100)+'%缓存命中）+ 输出）× '+daily+' 次/日 × 30 天，含缓存收益');
-    notes.push('稳定分=72h 可用率直取；性能分=TTFT 线性（≤800ms=100，≥6s=0）；未测维度已重归一化降权，不记零分');
-    html+='<div class="sel-note">'+notes.map(n=>'· '+n).join('<br>')+'</div>';
-    if(rej.length)
-      html+='<div class="sel-rej"><b>被排除的选项（'+rej.length+'）：</b>'
-        +rej.map(x=>'<div>· <b>'+esc(x.s)+'</b>：'+esc(x.r)+'</div>').join('')+'</div>';
-    out.innerHTML=html;
-  }).catch(e=>{ out.innerHTML='<div class="empty err"><div class="ring">!</div>'
-    +'<b>计算失败</b><div>'+esc(String(e))+'</div></div>'; });
 }
 function loadStations(){
   const box=document.getElementById('viewStations');
@@ -5547,13 +5484,13 @@ const COLS_SUMMARY=[{k:'模型规范名',t:'模型'},{k:'公司',t:'公司',h:1}
   {k:'最低实付缓存读(¥/M)',t:'读取',g:'缓存价格（¥/M）'},{k:'最低实付缓存写(¥/M)',t:'写入',g:'缓存价格（¥/M）'},
   {k:'最低实付输入($/M)',t:'输入内部$/M',h:1},
   {k:'官方输入(¥/M)',t:'输入',g:'官方价格（¥/M）'},{k:'官方输出(¥/M)',t:'输出',g:'官方价格（¥/M）'},
-  {k:'对比官方价(%)',t:'对比官方价%'},
-  {k:'TTFT p50(ms)',t:'TTFT'},{k:'TTFT p90(ms)',t:'TTFT p90',h:1},
-  {k:'缓存命中%',t:'缓存命中'},{k:'实测时间',t:'实测时间',h:1},
-  {k:'72小时可用率',t:'72h可用率'},
-  {k:'最近12次状态',t:'最近 12 次状态'}];
+  {k:'对比官方价(%)',t:'对比官方价%'}];
+// 2026-10-31：可达率 / TTFT / 缓存命中 / 最近12次状态 全部移出榜单。
+// 根因不是"数据还没攒够"，而是探针成本 ∝ 模型×站点——榜单有几百个模型，
+// 逐个真实调用不现实，这几列在 95% 的行上必然是空的，只剩视觉噪音。
+// 这些指标已改由「选型顾问」承载：用户指名 1 个模型后跨站细看，
+// 探针预算正好花在用户真正在问的那一个模型上。
 const COLS_STATION=[{k:'模型规范名',t:'模型'},{k:'公司',t:'公司',h:1},{k:'计费方式',t:'计费',h:1},{k:'分组',t:'分组'},{k:'分组倍率',t:'倍率'},
-  {k:'最近12次状态',t:'最近 12 次状态'},
   {k:'模型在该分组可用',t:'可用',h:1},{k:'价格来源',t:'来源',h:1},{k:'分辨率',t:'分辨率'},
   {k:'按秒价格(¥/秒)',t:'¥/秒'},{k:'按次价格(¥/次)',t:'¥/次'},
   {k:'按秒价格($/秒)',t:'内部$/秒',h:1},{k:'按次价格($/次)',t:'内部$/次',h:1},
@@ -5657,6 +5594,35 @@ function colPrefs(){
 function saveColPrefs(p){
   try{ localStorage.setItem(COL_PREF_KEY, JSON.stringify(p)); }catch(_e){}
 }
+// ---- 紧凑列模式：默认只显示决策必需的列（宽表 20+ 列会把页面撑得很宽）----
+// 与「列」弹层里的逐列勾选是两层：这里先按关键列收窄，再叠加用户的逐列偏好。
+const COMPACT_KEY='relay_compact_v1';
+let compact=(function(){ try{ return localStorage.getItem(COMPACT_KEY)!=='0'; }catch(_e){ return true; } })();
+// 关键列：模型 / 站点 / 分组 / 单价 / 对比官方价。按秒·按次类也带上对应价格列，
+// 否则切到视频·图片时紧凑档会一列价格都不剩。
+// 注意这里不含可用率——探针覆盖不全，留在关键列只会大面积空着（已移到选型顾问）。
+const KEY_SUMMARY=['模型规范名','最低价来自站点','最低价分组',
+  '最低实付输入(¥/M)','最低实付输出(¥/M)',
+  '最低按次价格(¥/次)','最低按秒价格(¥/秒)','最低价分辨率',
+  '对比官方价(%)'];
+const KEY_STATION=['模型规范名','分组','分组倍率',
+  '实付输入(¥/M)','实付输出(¥/M)',
+  '按次价格(¥/次)','按秒价格(¥/秒)','分辨率',
+  '对比官方价(%)'];
+function toggleCompact(){
+  compact=!compact;
+  try{ localStorage.setItem(COMPACT_KEY, compact?'1':'0'); }catch(_e){}
+  syncCompactBtn(); render();
+  toast(compact?'已收窄为关键列':'已展开全部列');
+}
+// 按钮文案随状态翻转，并常驻 render() 里同步（切换站点/重置后也不会错位）
+function syncCompactBtn(){
+  const b=document.getElementById('wideBtn'); if(!b) return;
+  b.textContent=compact?'展开全列':'只看关键列';
+  b.title=compact?('当前只显示决策必需的列，点一下展开全部列')
+                 :('当前显示全部列，点一下收窄为关键列');
+  b.classList.toggle('on',!compact);
+}
 // 弹层挪到 body 下：工具栏的 backdrop-filter 会创建层叠上下文，
 // 弹层留在里面无论 z-index 多高都会被吸顶表头盖住
 (function portalColPop(){
@@ -5730,6 +5696,9 @@ function renderColPop(){
   });
   let html='<div class="cp-head"><b>显示列</b>'
     +'<span class="cp-reset" onclick="resetColPrefs()">重置</span></div>';
+  // 紧凑模式下勾了非关键列也不会出现，先说清楚，免得以为勾选失灵
+  if(compact) html+='<div class="cp-tip">当前为「关键列」模式，勾选非关键列后需点'
+    +'<b>展开全列</b>才会显示</div>';
   groups.forEach(gr=>{
     if(gr.g) html+='<div class="cp-grp">'+esc(gr.g)+'</div>';
     gr.items.forEach(c=>{
@@ -5844,6 +5813,7 @@ function resetFilters(){
   stSel=''; venSel=''; famSel=''; modelSel=''; kindSel='text'; stDetail=null;  // 清空筛选并回到默认「语言模型」
   document.getElementById('q').value='';           // 清空搜索
   document.getElementById('fAvail').checked=true;  // 恢复「只看可用分组」默认勾选
+  const _ho=document.getElementById('fHideOffline'); if(_ho) _ho.checked=false;  // 恢复「显示已下架」
   refreshStations(); refreshVendors(); refreshFamilies(); refreshModels(); render();
 }
 // ---- 筛选状态写进 URL：刷新不丢、可直接分享 ----
@@ -5901,6 +5871,9 @@ function filtered(ignoreKind){
   if(modelSel) rs=rs.filter(r=>r['模型规范名']===modelSel);
   if(stDetail){ if(document.getElementById('fAvail').checked) rs=rs.filter(r=>r['模型在该分组可用']==='是'); }
   else if(stSel) rs=rs.filter(r=>('、'+(r['在售站点']||'')+'、').includes('、'+stSel+'、'));
+  // 单站页：勾选「隐藏已下架」时滤掉后端标记为 gone 的模型
+  if(stDetail && document.getElementById('fHideOffline') && document.getElementById('fHideOffline').checked)
+    rs=rs.filter(r=>!r.offline);
   return rs;
 }
 // 四个大类按钮上的条目数 + 高亮状态（「语言模型」按白名单计数）
@@ -5969,6 +5942,8 @@ function cell(r,c){
       const off=r['官方输入(¥/M)'];
       if(off!==''&&off!=null) html+=`<div class="muted" style="font-size:11px;line-height:1.35">官方 ¥${fmt(Number(off))}/M</div>`;
     }
+    // 单站页：已下架模型加徽标（数据来自后端按可用性 gone 标记的 r.offline）
+    if(stDetail && r.offline) html+=`<span class="badge-del" title="该模型在此站已下架（可用性检测未再出现）">已下架</span>`;
     return `<td>${html}</td>`;
   }
   const v=r[c.k], b=r['计费方式']||'per_token', isTok=b==='per_token';
@@ -6005,7 +5980,10 @@ function cell(r,c){
   // 与「不适用」区分——这是没跑过，不是跑不了（三态空值语义）
   if(c.k==='TTFT p50(ms)'||c.k==='TTFT p90(ms)'){
     if(v===''||v==null) return '<td class="un">未测</td>';
-    return `<td class="nowrap" title="${c.k}：请求发出到首个输出 token 的毫秒数（api-bench 实测）">${fmt(v)}ms</td>`;
+    const src=(c.k==='TTFT p50(ms)')
+      ?'该站该模型真实调用探测的中位数；未探测的模型回退 api-bench 站级 p50'
+      :'api-bench 实测';
+    return `<td class="nowrap" title="${c.k}：请求发出到首个输出 token 的毫秒数（${src}）">${fmt(v)}ms</td>`;
   }
   if(c.k==='缓存命中%'){
     if(v===''||v==null) return '<td class="un">未测</td>';
@@ -6135,8 +6113,12 @@ const CORE_TINY=['模型规范名','最低价来自站点',
 let __narrow=NARROW()+'|'+TINY();
 function render(){
   ensureSortKey();
+  syncCompactBtn();
   const allowed=NARROW()?(TINY()?CORE_TINY:CORE_MOBILE):null;
-  const view=visibleCols().filter(c=>!allowed||allowed.indexOf(c.k)>=0);
+  // 紧凑模式：先按关键列收窄，再叠加「列」弹层的逐列偏好与窄屏核心列限制
+  const keyCols=compact?(stDetail?KEY_STATION:KEY_SUMMARY):null;
+  const view=visibleCols().filter(c=>(!keyCols||keyCols.indexOf(c.k)>=0)
+                                  &&(!allowed||allowed.indexOf(c.k)>=0));
   const data=baseRows();
   applyFold(data);   // 单站页：按模型折叠，仅显示最低价分组
   // 汇总页按「公司（厂商）」分组排列：OpenAI / Anthropic 置顶，其余字母序；
@@ -6146,10 +6128,12 @@ function render(){
     return ra!==rb ? ra-rb : String(companyOf(a)).localeCompare(String(companyOf(b)));
   });
   document.getElementById('availWrap').style.display=stDetail?'':'none';
+  document.getElementById('offWrap').style.display=stDetail?'':'none';
   if(stDetail){
     const er=stDetail.exchange_rate, inv=er?(1/er).toFixed(4):'?';
+    const offTxt=stDetail.offline_count?('（在售 '+stDetail.models+' · 已下架 '+stDetail.offline_count+'）'):'';
     document.getElementById('meta').textContent=stDetail.name+' · '+stDetail.models+
-      ' 个模型 · '+data.length+' 行（模型×分组，默认每模型仅显示最低价分组，可展开）· 充值比例 ¥'+(er==null?'未获取':er)+
+      ' 个模型'+offTxt+' · '+data.length+' 行（模型×分组，默认每模型仅显示最低价分组，可展开）· 充值比例 ¥'+(er==null?'未获取':er)+
       '/$（1¥='+inv+'$）'+(stDetail.truncated?(' · 该站分组过多（原始 '+stDetail.total+
       ' 行），已按模型只保留最低价分组'):'');
   } else { document.getElementById('meta').textContent=summaryMeta; }
@@ -6187,7 +6171,12 @@ function render(){
       const ven=companyOf(r)||'未知厂商';
       if(ven!==lastVen){ grp='<tr class="grp"><td colspan="'+view.length+'">'+esc(ven)+'</td></tr>'; lastVen=ven; }
     }
-    return grp+'<tr'+onclick+hidden+'>'+view.map(c=>cell(r,c)).join('')+'</tr>';
+    // 单站页展开出来的「其它分组」行加 subg 标记：底色与最优价主体行区分开
+    let oc='';
+    if(r.offline) oc='off';
+    if(stDetail && r._ui && r._ui.n>1 && !r._ui.best) oc+=(oc?' ':'')+'subg';
+    if(oc) oc=' class="'+oc+'"';
+    return grp+'<tr'+onclick+oc+hidden+'>'+view.map(c=>cell(r,c)).join('')+'</tr>';
   }).join(''):'<tr><td colspan="'+view.length+'"><div class="empty">'
     +'<div class="ring">∅</div><b>当前筛选没有匹配的模型</b>'
     +'<div>放宽筛选项，或回到默认视图重新查看</div>'
@@ -6458,9 +6447,9 @@ const CMP_COLS=[
   {k:'实付缓存写($/M)',t:'缓存写$/M',num:true,tok:true,h:1},
   {k:'官方输入(¥/M)',t:'输入',num:true,tok:true,g:'官方价格（¥/M）'},
   {k:'官方输出(¥/M)',t:'输出',num:true,tok:true,g:'官方价格（¥/M）'},
-  {k:'对比官方价(%)',t:'对比官方价%',num:true,tok:true},
-  {k:'72小时可用率',t:'72h可用率'},
-  {k:'最近12次状态',t:'最近 12 次状态'}];
+  {k:'对比官方价(%)',t:'对比官方价%',num:true,tok:true}];
+// 同汇总页：可达率 / 最近12次状态属探针数据，覆盖不全（成本∝模型×站点），
+// 比价页只留价格类列；这类实测指标由选型顾问承载。
 const numOf=v=>{if(v===''||v==null)return null;const n=Number(v);return isNaN(n)?null:n;};
 // 该行在某一列的值；量纲不符（如按秒行看输入$/M）返回 null，排序时恒排末尾
 function cmpValOf(r,c){
@@ -6654,7 +6643,7 @@ function renderCmp(){
     +'<span class="cmphero-note">人民币口径（已按各站充值比例折算）；名次徽标标出最低价三条；'+kindLabel+'视图；点表头排序</span>'
     +'</div></div>';
   // 头部与单元格共用同一套可见列（已按模型种类隐藏无关列，与首页一致）
-  const CORE_CMP=['站点','分组','倍率','实付输入(¥/M)','实付输出(¥/M)','对比官方价(%)','72小时可用率'];
+  const CORE_CMP=['站点','分组','倍率','实付输入(¥/M)','实付输出(¥/M)','对比官方价(%)'];
   let cols=CMP_COLS.filter(c=>!c.h && hide.indexOf(c.k)<0
     && (!NARROW() || CORE_CMP.some(k=>c.k===k || c.t===k)));
   // 多模型对比：最前面插入「模型」列，否则不同模型的价格混在一张表里读不出来
@@ -6698,7 +6687,9 @@ function renderCmp(){
   }
   const ctx={pk, minP, maxP};
   const body='<tbody>'+rs.map((r,i)=>cmpRowHtml(r, rankOf[i]||'', cols, ctx)).join('')+'</tbody>';
-  box.innerHTML='<div class="cmpwrap">'+bar+'<table class="cmp">'+head+body+'</table></div>';
+  // hero 必须放在 .cmpwrap 外面：.cmpwrap 有 overflow-x:auto，会成为 sticky 的滚动容器。
+  // 囚禁在里面的 sticky 不会吸顶，而是被 top:60px 永久下压 60px，正好压住表头第一行。
+  box.innerHTML=bar+'<div class="cmpwrap"><table class="cmp">'+head+body+'</table></div>';
 }
 function cmp(m){
   const box=document.getElementById('chart');
@@ -6749,6 +6740,245 @@ skeleton(9);
 """
 
 
+# 选型顾问独立页：与价格看板同级、互不干扰。
+# CSS 直接复用 DASHBOARD_HTML 的 <style>（同一套果冻糖设计语言），
+# 只保留本页所需的一段补丁；数据仍走只读的 /api/summary、/api/compare、/api/bench，
+# 但页面结构、状态与看板的表格/视图切换完全无关。
+_SELECTOR_PAGE_HTML = """<!DOCTYPE html>
+<!-- SELECTOR-V1 2026-10-30: 从看板内视图拆出的独立页面 -->
+<html lang="zh-CN"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>选型顾问 · 中转站比价</title>
+<style>__CSS__</style>
+<style>
+/* 本页补丁：单列收窄 + 补上 CSS 里被引用但未定义的等宽字体变量 */
+:root{--font-mono:ui-monospace,SFMono-Regular,"SF Mono",Menlo,Consolas,monospace}
+body.sel-page .wrap{max-width:1180px}
+/* 表单卡补上果冻高光/落影，与看板面板同一质感 */
+body.sel-page .sel-form{position:sticky;top:18px;box-shadow:var(--jelly),var(--lift-1)}
+@media(max-width:900px){body.sel-page .sel-form{position:static}}
+</style>
+</head><body class="sel-page">
+<header class="rl-site-nav"><div class="rl-wrap">
+  <a class="rl-logo" href="__SITE_BASE__index.html" title="返回 RelayLens 首页"><span class="rl-mark">◎</span>RelayLens</a>
+  __SITE_NAV__
+</div></header>
+<div class="wrap">
+  <header class="top">
+    <div class="brand">
+      <div class="mark">¥</div>
+      <div>
+        <h1>选型顾问</h1>
+        <div class="sub">按你的真实负载算月成本，按场景权重给综合推荐——只用实测数据，缺维度降权而非编造</div>
+      </div>
+    </div>
+    <div class="topacts">
+      <a class="tbtn" href="__SELF_BASE__/" title="返回价格看板">← 价格看板</a>
+    </div>
+  </header>
+
+  <div class="sel-grid">
+    <div class="sel-form" id="selForm"><div class="muted">正在加载模型清单…</div></div>
+    <div class="sel-out" id="selOut">
+      <div class="sel-note">选好左侧参数后点「生成推荐」。权重随场景变化：<span id="selSceneNote"></span></div>
+    </div>
+  </div>
+
+  <footer class="legend">
+    <b>口径说明</b>
+    <span><i>月成本</i>＝（输入×(1−缓存命中)＋输入×命中×缓存读价＋输出）× 日请求 × 30</span>
+    <span><i>稳定分</i>＝72h 模型级真实调用可用率</span>
+    <span><i>性能分</i>＝首字延迟 TTFT 线性映射（≤800ms=100，≥6s=0）</span>
+    <span><i>缺维度</i>＝重归一化降权，不记零分</span>
+  </footer>
+</div>
+<div class="toast" id="toast"></div>
+<script>
+// ══════ 选型顾问（独立页）════════
+// 原则：①只用实测数据，缺维度重归一化降权而非编造 ②成本按真实负载算（含缓存命中收益）
+// ③被排除的选项与排除原因并列展示 ④TTFT/可用率未测的站如实标注
+const SEL_SCENES={
+  general:{label:'通用对话',  in:5000, out:800, hr:.5, w:{cost:40,stab:35,perf:25}},
+  code:   {label:'编程 Agent',in:10000,out:1500,hr:.6, w:{cost:30,stab:25,perf:45}},
+  office: {label:'办公批处理',in:400, out:150, hr:.1, w:{cost:45,stab:35,perf:20}},
+  long:   {label:'长文写作',  in:40000,out:3000,hr:.3, w:{cost:35,stab:30,perf:35}},
+  biz:    {label:'企业接入',  in:5000, out:800, hr:.5, w:{cost:20,stab:60,perf:20}},
+};
+function esc(v){return String(v==null?'':v).replace(/&/g,'&amp;').replace(/</g,'&lt;')
+  .replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;');}
+function fmt(v){if(v==null||v==='')return '-';return Number(v).toPrecision(4).replace(/0+$/,'').replace(/\\.$/,'');}
+let toastTimer=null;
+function toast(msg){
+  const el=document.getElementById('toast'); if(!el) return;
+  el.textContent=msg; el.classList.add('on');
+  clearTimeout(toastTimer); toastTimer=setTimeout(()=>el.classList.remove('on'),2400);
+}
+const selMoney=v=>v==null?'-':'¥'+(v>=1000?Math.round(v).toLocaleString('en-US'):v.toFixed(v<10?2:1));
+
+function selFormHtml(models){
+  const opts=models.map(m=>'<option value="'+esc(m['模型规范名'])+'">'
+    +esc(m['模型规范名'])+'（'+(m['在售站数']||0)+' 站在售）</option>').join('');
+  const scenes=Object.entries(SEL_SCENES).map(([k,s])=>
+    '<option value="'+k+'">'+esc(s.label)+'</option>').join('');
+  return '<label>使用场景<select id="selScene" onchange="selApplyScene()">'+scenes+'</select></label>'
+    +'<label>目标模型<select id="selModel">'+(opts||'<option value="">（无按量计费模型）</option>')+'</select>'
+    +'<span class="hint">仅列出有跨站在售的按量计费模型</span></label>'
+    +'<div class="row2">'
+    +'<label>日请求数<input id="selDaily" type="number" min="1" value="100"></label>'
+    +'<label>缓存命中率<input id="selHr" type="range" min="0" max="95" value="50" '
+    +'oninput="document.getElementById(\\'selHrVal\\').textContent=this.value+\\'%\\'">'
+    +'<span class="hint" id="selHrVal">50%</span></label></div>'
+    +'<div class="row2">'
+    +'<label>平均输入 tokens<input id="selIn" type="number" min="1" value="5000"></label>'
+    +'<label>平均输出 tokens<input id="selOutTok" type="number" min="1" value="800"></label></div>'
+    +'<div class="row2">'
+    +'<label>月预算上限（¥，选填）<input id="selBudget" type="number" min="0" placeholder="不限"></label>'
+    +'<label>首字延迟要求<select id="selTtft"><option value="0">不限</option>'
+    +'<option value="3000">≤ 3s</option><option value="1500">≤ 1.5s</option></select>'
+    +'<span class="hint">未实测 TTFT 的站将被排除并说明</span></label></div>'
+    +'<button class="primary" onclick="runSelector()">生成推荐</button>'
+    +'<span class="hint">测算会发真实请求吗？——不会。全部基于已采集的价目与实测指标离线计算</span>';
+}
+
+function loadModels(){
+  const box=document.getElementById('selForm');
+  fetch('/api/summary').then(r=>r.json()).then(d=>{
+    // 只保留有跨站在售的按量计费模型（同看板汇总表口径）
+    const models=[...new Map((d.rows||[])
+      .filter(r=>r['计费方式']==='per_token')
+      .map(r=>[r['模型规范名'],r])).values()]
+      .sort((a,b)=>(b['在售站数']||0)-(a['在售站数']||0));
+    box.innerHTML=selFormHtml(models);
+    const note=document.getElementById('selSceneNote');
+    if(note) note.textContent=Object.values(SEL_SCENES)
+      .map(s=>s.label+'（价'+s.w.cost+'/稳'+s.w.stab+'/性'+s.w.perf+'）').join(' · ');
+    const sc=document.getElementById('selScene');
+    if(sc) sc.dispatchEvent(new Event('change'));
+  }).catch(e=>{ box.innerHTML='<div class="empty err"><div class="ring">!</div>'
+    +'<b>加载失败</b><div>'+esc(String(e))+'</div></div>'; });
+}
+
+function selApplyScene(){
+  const s=SEL_SCENES[document.getElementById('selScene').value]||SEL_SCENES.general;
+  document.getElementById('selIn').value=s.in;
+  document.getElementById('selOutTok').value=s.out;
+  document.getElementById('selHr').value=Math.round(s.hr*100);
+  document.getElementById('selHrVal').textContent=Math.round(s.hr*100)+'%';
+}
+
+function runSelector(){
+  const model=document.getElementById('selModel').value;
+  if(!model){ toast('没有可选模型'); return; }
+  const daily=Math.max(1,+document.getElementById('selDaily').value||100);
+  const inTok=Math.max(1,+document.getElementById('selIn').value||5000);
+  const outTok=Math.max(1,+document.getElementById('selOutTok').value||800);
+  const hr=Math.min(.95,Math.max(0,+document.getElementById('selHr').value||0))/100;
+  const budget=+document.getElementById('selBudget').value||0;
+  const ttftReq=+document.getElementById('selTtft').value||0;
+  const scene=SEL_SCENES[document.getElementById('selScene').value]||SEL_SCENES.general;
+  const out=document.getElementById('selOut');
+  out.innerHTML='<div class="muted">正在计算…</div>';
+  Promise.all([
+    fetch('/api/compare?model='+encodeURIComponent(model)).then(r=>r.json()),
+    fetch('/api/bench?limit=200').then(r=>r.json())
+  ]).then(([cmp,bench])=>{
+    const ttftBy={};
+    (bench.rows||[]).forEach(b=>{
+      if(!b.ok||b.ttft_p50_ms==null) return;
+      if(!(b.station in ttftBy)||b.ttft_p50_ms<ttftBy[b.station]) ttftBy[b.station]=b.ttft_p50_ms;
+    });
+    // 每站只留成本最低的分组（同站多分组是渠道差异，选型时按最优渠道算）
+    const bySt={};
+    (cmp.rows||[]).forEach(r=>{
+      if(r['计费方式']!=='per_token') return;
+      if(r['实付输入(¥/M)']==null) return;
+      const st=r['站点'];
+      // 缓存读价未公示的站按输入价保守估算（宁可高估不虚低）
+      const cr=(r['实付缓存读(¥/M)']!=null)?r['实付缓存读(¥/M)']:r['实付输入(¥/M)'];
+      const perReq=(inTok*(1-hr)*r['实付输入(¥/M)']+inTok*hr*cr+outTok*r['实付输出(¥/M)'])/1e6;
+      const monthly=perReq*daily*30;
+      if(!(st in bySt)||monthly<bySt[st].monthly) bySt[st]={
+        station:st,group:r['分组'],monthly,input:r['实付输入(¥/M)'],
+        cacheMissing:r['实付缓存读(¥/M)']==null,
+        avail:(r['72小时可用率']&&r['72小时可用率'].p)!=null?r['72小时可用率'].p:null,
+        // 优先该站该模型的真实调用 TTFT（与可用率同源），没有再回退站级 api-bench
+        ttft:(r['TTFT(ms)']!=null?r['TTFT(ms)']:(ttftBy[st]||null))};
+    });
+    const cands=Object.values(bySt), rej=[];
+    cands.forEach(c=>{
+      if(budget&&c.monthly>budget)
+        rej.push({s:c.station,r:'月成本 '+selMoney(c.monthly)+' 超预算 '+selMoney(budget)});
+      else if(ttftReq&&c.ttft==null)
+        rej.push({s:c.station,r:'TTFT 未实测，无法确认 ≤'+(ttftReq/1000)+'s 的要求'});
+      else if(ttftReq&&c.ttft>ttftReq)
+        rej.push({s:c.station,r:'TTFT '+fmt(c.ttft)+'ms 超出 ≤'+(ttftReq/1000)+'s 要求'});
+    });
+    const ok=cands.filter(c=>!rej.some(x=>x.s===c.station));
+    if(!ok.length){
+      out.innerHTML='<div class="empty"><div class="ring">∅</div><b>没有满足条件的站点</b>'
+        +'<div>'+(rej.length?'全部 '+rej.length+' 个候选被排除，原因见下':'该模型暂无按量计费候选')+'</div></div>'
+        +(rej.length?'<div class="sel-rej">'+rej.map(x=>'<div><b>'+esc(x.s)+'</b>：'+esc(x.r)+'</div>').join('')+'</div>':'');
+      return;
+    }
+    const minCost=Math.min(...ok.map(c=>c.monthly));
+    ok.forEach(c=>{
+      c.cs=100*minCost/c.monthly;                       // 成本分：线性，最便宜=100
+      c.ss=(c.avail!=null)?c.avail:null;                // 稳定分：72h 可用率直取
+      c.ps=(c.ttft!=null)?Math.max(0,Math.min(100,100-(c.ttft-800)/(6000-800)*100)):null;
+      const w=scene.w, ws=[];
+      if(c.cs!=null)ws.push(w.cost); if(c.ss!=null)ws.push(w.stab); if(c.ps!=null)ws.push(w.perf);
+      const sum=ws.reduce((a,b)=>a+b,0)||1;
+      c.coverage=sum/(w.cost+w.stab+w.perf);
+      c.score=Math.round(((c.cs*w.cost+(c.ss||0)*w.stab+(c.ps||0)*w.perf)/sum)*10)/10;
+    });
+    ok.sort((a,b)=>b.score-a.score);
+    const cheap=[...ok].sort((a,b)=>a.monthly-b.monthly)[0];
+    const fast=[...ok].filter(c=>c.ttft!=null).sort((a,b)=>a.ttft-b.ttft)[0];
+    const stab=[...ok].filter(c=>c.ss!=null).sort((a,b)=>b.ss-a.ss)[0];
+    const card=(t,v,s,win)=>'<div class="sel-card'+(win?' win':'')+'"><div class="t">'+t
+      +'</div><div class="v">'+v+'</div><div class="s">'+s+'</div></div>';
+    let html='<div class="sel-top">'
+      +card('综合推荐',esc(ok[0].station),'综合 '+ok[0].score+' 分 · 月成本 '+selMoney(ok[0].monthly)
+        +' · TTFT '+(ok[0].ttft!=null?fmt(ok[0].ttft)+'ms':'未测')+' · 可用率 '
+        +(ok[0].ss!=null?fmt(ok[0].ss)+'%':'未测'),true)
+      +(cheap&&cheap!==ok[0]?card('最便宜',esc(cheap.station),'月成本 '+selMoney(cheap.monthly)
+        +'（'+esc(cheap.group)+' 组）· 综合 '+cheap.score+' 分'):'' )
+      +(fast?card('首字最快',esc(fast.station),'TTFT '+fmt(fast.ttft)+'ms · 月成本 '+selMoney(fast.monthly)):'')
+      +(stab&&stab!==ok[0]?card('最稳',esc(stab.station),'72h 可用率 '+fmt(stab.ss)+'%'):'')
+      +'</div>';
+    html+='<table class="sel-table"><thead><tr><th>站点</th><th>分组</th><th>月成本</th>'
+      +'<th>综合</th><th>价</th><th>稳</th><th>性</th><th>TTFT</th><th>72h可用</th></tr></thead><tbody>'
+      +ok.map(c=>{
+        const un='<span class="un">未测</span>';
+        const ms=v=>v==null?un:fmt(v)+'ms';
+        const pc=v=>v==null?un:fmt(v)+'%';
+        return '<tr><td><b>'+esc(c.station)+'</b></td><td class="muted">'+esc(c.group)+'</td>'
+          +'<td class="num">'+selMoney(c.monthly)+'</td><td class="num"><b>'+c.score+'</b>'
+          +(c.coverage<0.66?' <span class="un">低数据</span>':'')+'</td>'
+          +'<td class="num">'+fmt(Math.round(c.cs))+'</td>'
+          +'<td class="num">'+(c.ss!=null?fmt(Math.round(c.ss)):un)+'</td>'
+          +'<td class="num">'+(c.ps!=null?fmt(Math.round(c.ps)):un)+'</td>'
+          +'<td class="num">'+(c.ttft!=null?fmt(c.ttft)+'ms':un)+'</td>'
+          +'<td class="num">'+(c.ss!=null?pc(c.ss):un)+'</td></tr>';
+      }).join('')+'</tbody></table>';
+    const notes=[];
+    const cm=[...new Set(ok.filter(c=>c.cacheMissing).map(c=>c.station))];
+    if(cm.length) notes.push('「'+esc(cm.join('、'))+'」未公示缓存读价，缓存部分按输入价保守估算（实际可能更省）');
+    notes.push('月成本 =（输入×('+(100-Math.round(hr*100))+'%直连 + '+Math.round(hr*100)+'%缓存命中）+ 输出）× '+daily+' 次/日 × 30 天，含缓存收益');
+    notes.push('稳定分=72h 可用率直取；性能分=TTFT 线性（≤800ms=100，≥6s=0）；未测维度已重归一化降权，不记零分');
+    html+='<div class="sel-note">'+notes.map(n=>'· '+n).join('<br>')+'</div>';
+    if(rej.length)
+      html+='<div class="sel-rej"><b>被排除的选项（'+rej.length+'）：</b>'
+        +rej.map(x=>'<div>· <b>'+esc(x.s)+'</b>：'+esc(x.r)+'</div>').join('')+'</div>';
+    out.innerHTML=html;
+  }).catch(e=>{ out.innerHTML='<div class="empty err"><div class="ring">!</div>'
+    +'<b>计算失败</b><div>'+esc(String(e))+'</div></div>'; });
+}
+loadModels();
+</script>
+</body></html>"""
+
+
 def cmd_serve(args):
     """本地 Web 看板：/api/summary、/api/history、/api/compare、/api/stations。"""
     import http.server
@@ -6781,18 +7011,24 @@ def cmd_serve(args):
         ("pitfalls.html", "避坑指南"), ("method.html", "方法论"), ("tools.html", "自测工具箱"),
     ]
 
-    def _nav_a(page, label):
-        # 选型顾问在看板内已有同名视图：顶部导航直接打开它，
-        # 不再跳主站 selector.html（该页尚未部署，点了 404）
-        if page == "selector.html":
-            return '<a href="#" onclick="toggleView(\'selector\');return false">{}</a>'.format(label)
-        return '<a href="{}"{}>{}</a>'.format(
-            (site_base + page) if page else self_url,
-            ' class="active" aria-current="page"' if page is None else "",
-            label)
+    # 选型顾问已是独立页面（与价格看板同级）：导航直接跳本地 /selector.html，
+    # 不再借看板内的视图切换，也不再依赖主站是否部署该页。
+    self_base = self_url.rstrip("/")
+    selector_url = self_base + "/selector.html"
 
-    site_nav = '<nav class="nav-links" aria-label="主导航">' + "".join(
-        _nav_a(page, label) for page, label in _NAV_ITEMS) + "</nav>"
+    def _build_nav(active_page):
+        def _nav_a(page, label):
+            if page == "selector.html":
+                cls = ' class="active" aria-current="page"' if active_page == "selector.html" else ""
+                return '<a href="{}"{}>{}</a>'.format(selector_url, cls, label)
+            cls = ' class="active" aria-current="page"' if (page is None and active_page is None) else ""
+            return '<a href="{}"{}>{}</a>'.format(
+                (site_base + page) if page else self_url, cls, label)
+        return '<nav class="nav-links" aria-label="主导航">' + "".join(
+            _nav_a(page, label) for page, label in _NAV_ITEMS) + "</nav>"
+
+    site_nav = _build_nav(None)
+    site_nav_selector = _build_nav("selector.html")
 
     # —— 接口级缓存：汇总/单站数据只在「有新快照或新探测」时才重算 ——
     # 看板的搜索/排序/筛选都是前端本地完成，只有切站点会请求 /api/station；
@@ -6867,23 +7103,37 @@ def cmd_serve(args):
             self.end_headers()
             self.wfile.write(body)
 
+        def _send_html(self, body):
+            self.send_response(200)
+            self.send_header("Content-Type", "text/html; charset=utf-8")
+            # 页面是单文件随代码变的：禁缓存，防止浏览器拿旧 HTML 点新按钮没反应
+            self.send_header("Cache-Control", "no-store")
+            self.send_header("Content-Length", str(len(body)))
+            self.end_headers()
+            self.wfile.write(body)
+
         def do_GET(self):
             u = urlparse(self.path)
             q = parse_qs(u.query)
             if u.path == "/":
                 # __SITE_NAV__/__SITE_BASE__:全站导航条与站内链接;__HOME_URL__:口径条跳转目标
-                body = (DASHBOARD_HTML
+                self._send_html(DASHBOARD_HTML
                         .replace("__SITE_NAV__", site_nav)
                         .replace("__SITE_BASE__", site_base)
                         .replace("__HOME_URL__", home_url)
+                        .replace("__SELF_BASE__", self_base)
                         .encode("utf-8"))
-                self.send_response(200)
-                self.send_header("Content-Type", "text/html; charset=utf-8")
-                # 页面是单文件随代码变的：禁缓存，防止浏览器拿旧 HTML 点新按钮没反应
-                self.send_header("Cache-Control", "no-store")
-                self.send_header("Content-Length", str(len(body)))
-                self.end_headers()
-                self.wfile.write(body)
+                return
+            if u.path in ("/selector.html", "/selector", "/selector/"):
+                # 选型顾问独立页：复用看板的果冻糖 CSS，但页面结构与看板视图无关，
+                # 只依赖只读接口，与价格看板互不影响
+                _css = DASHBOARD_HTML.split("<style>", 1)[1].split("</style>", 1)[0]
+                self._send_html(_SELECTOR_PAGE_HTML
+                        .replace("__CSS__", _css)
+                        .replace("__SITE_NAV__", site_nav_selector)
+                        .replace("__SITE_BASE__", site_base)
+                        .replace("__SELF_BASE__", self_base)
+                        .encode("utf-8"))
                 return
             conn = connect(db)
             try:
@@ -6988,11 +7238,23 @@ def cmd_serve(args):
                                     er = snap["usd_exchange_rate"]
                             else:
                                 er = None
-                            models = len({r["模型规范名"] for r in srows})
+                            # 标记已下架模型（可用性最新状态 gone）：前端灰显+「已下架」徽标，
+                            # 不再当作在售价展示。models 统计在售数，offline_count 供头部提示。
+                            _off_aggs = {a for (s, a) in _offline_model_aggs(conn) if s == st["id"]}
+                            _off_n = 0
+                            for _r in srows:
+                                _a = _r.get("model_agg") or agg_key(_r.get("模型规范名") or "")
+                                if _a in _off_aggs:
+                                    _r["offline"] = True
+                                    _off_n += 1
+                                else:
+                                    _r["offline"] = False
+                            models = len({r["模型规范名"] for r in srows if not r.get("offline")})
                             groups = len({r["分组"] for r in srows})
                             ent = (ver, {"name": name, "mode": st["mode"],
                                          "exchange_rate": er,
-                                         "models": models, "groups": groups, "rows": srows,
+                                         "models": models, "groups": groups,
+                                         "offline_count": _off_n, "rows": srows,
                                          "total": total, "truncated": truncated})
                             _cache["station"][name] = ent
                         self._json(ent[1])
@@ -7528,6 +7790,10 @@ def _probe_api(station: dict, model: str, timeout: float):
                 snippet = chunk.decode("utf-8", "replace")[:200]
                 break
         ok = (r.status_code == 200)
+        # TTFT 只在成功调用时才有意义：失败响应也有首字节，但那是错误页的返回时间，
+        # 记下来会污染「模型快不快」的判断（401/403 的几百毫秒会被当成极快）
+        if not ok:
+            ttft = None
         # 失败时把响应体带出来：403/503 常见是「分组无权访问该模型」或 Cloudflare，
         # 只记 HTTP 状态码无法定位，写进 detail 便于排查
         err = None if ok else (f"HTTP {r.status_code}: {snippet}" if snippet
@@ -7589,21 +7855,41 @@ def run_probe_round(conn, args, verbose: bool = True) -> dict:
     return {"ok": n_ok, "total": len(todo), "results": results}
 
 
-def backup_database(conn, backup_dir: str = "backups", keep: int = 14) -> str:
+def backup_database(conn, backup_dir: str = "backups", keep: int = 14,
+                    deadline_s: float = 60.0) -> str:
     """用 SQLite 在线备份 API 拷一份数据库 → 备份文件路径。
 
     不锁库、不影响 watch 抓取；比文件拷贝安全（拷贝中途正在写会损坏）。
     watch 每轮抓取后调用一次，按日期命名并只保留最近 keep 份。
+
+    坑：conn.backup() 在源库被别的连接持写锁时是「sleep 后无限重试」，没有超时，
+    watch 常驻写库时能把抓取线程永久挂住（表现为进程不退出、CPU 为 0、持着写锁）。
+    所以这里分块拷贝 + progress 回调做 deadline：超时就放弃本轮备份，而不是挂死。
     """
     os.makedirs(backup_dir, exist_ok=True)
     stamp = datetime.now().strftime("%Y%m%d_%H%M%S")
     path = os.path.join(backup_dir, f"relay_data_{stamp}.db")
     dst = sqlite3.connect(path)
+    done = False
     try:
+        dst.execute("PRAGMA busy_timeout=5000")
+        t0 = time.monotonic()
+
+        def _progress(status, remaining, total):
+            if time.monotonic() - t0 > deadline_s:
+                raise TimeoutError(f"备份超时 {deadline_s:.0f}s（源库被其他连接占用）")
+
         with dst:
-            conn.backup(dst)
+            conn.backup(dst, pages=64, progress=_progress)
+        done = True
     finally:
         dst.close()
+        # 失败的备份是半截文件，删掉，避免以后 restore 拿到不完整的库
+        if not done:
+            try:
+                os.remove(path)
+            except OSError:
+                pass
     old = sorted(f for f in os.listdir(backup_dir) if f.startswith("relay_data_"))
     for f in old[:-keep] if keep > 0 else []:
         try:
@@ -7843,6 +8129,26 @@ def _avail_state(conn) -> dict:
     return state
 
 
+def _offline_model_aggs(conn) -> set:
+    """{(station_id, model_agg)} 当前在该站已下架。
+
+    只取 listed/gone 上下架变更日志的最新一条判定（ROW_NUMBER 分区取最新），
+    不混入 probe_ok/probe_fail —— 探测结果不代表上下架，否则一次探测失败会误把
+    gone 覆盖成"在线"，把已下架模型又显示成在售。无记录或最新为 listed → 视为在售。
+    """
+    try:
+        rows = conn.execute("""
+            SELECT station_id, model_agg, status FROM (
+              SELECT station_id, model_agg, status,
+                     ROW_NUMBER() OVER (PARTITION BY station_id, model_agg
+                                        ORDER BY id DESC) rn
+              FROM model_availability WHERE status IN ('listed', 'gone')
+            ) WHERE rn=1""").fetchall()
+    except Exception:
+        return set()
+    return {(r["station_id"], r["model_agg"]) for r in rows if r["status"] == "gone"}
+
+
 def _avail_by_model(conn) -> dict:
     """按模型聚合可用性：{聚合键: {listed, gone, probe_ok, probe_fail, checked, ts, stations}}。
     「上下架」与「真实探测」分别取各自最近一条 —— 否则一次探测失败/unknown 会覆盖
@@ -7996,8 +8302,10 @@ def _avail_probe(conn, stations, args, verbose: bool = True, name_by_sid: dict =
                 status = "unknown"; stat["unknown"] += 1
             else:
                 status = "probe_fail"; stat["fail"] += 1
+            # ttft 一并落库：探针是流式读首包算出来的，顺手存下来就不用再单独跑 bench
             pending.append((st["id"], key, nm(st), status,
-                            (r.get("error") or f"HTTP {r.get('status')}"), r.get("latency_ms")))
+                            (r.get("error") or f"HTTP {r.get('status')}"),
+                            r.get("latency_ms"), r.get("ttft")))
             if verbose:
                 tag = "可调用" if r["ok"] else ("不确定" if status == "unknown" else "不可调用")
                 print(f"  [{tag}] {st['name']:<14} {nm(st):<26} "
@@ -8006,9 +8314,9 @@ def _avail_probe(conn, stations, args, verbose: bool = True, name_by_sid: dict =
         ts = utc_now()
         conn.executemany(
             "INSERT INTO model_availability(station_id, model_agg, model_name, ts, status,"
-            " detail, latency_ms) VALUES(?,?,?,?,?,?,?)",
-            [(sid, key, name, ts, status, detail, lat)
-             for sid, key, name, status, detail, lat in pending])
+            " detail, latency_ms, ttft_ms) VALUES(?,?,?,?,?,?,?,?)",
+            [(sid, key, name, ts, status, detail, lat, tt)
+             for sid, key, name, status, detail, lat, tt in pending])
         conn.commit()
     stat["rows"] = len(pending)
     return stat
