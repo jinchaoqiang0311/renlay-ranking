@@ -7066,16 +7066,15 @@ def cmd_serve(args):
         ("pitfalls.html", "避坑指南"), ("method.html", "方法论"), ("tools.html", "自测工具箱"),
     ]
 
-    # 选型顾问已是独立页面（与价格看板同级）：导航直接跳本地 /selector.html，
-    # 不再借看板内的视图切换，也不再依赖主站是否部署该页。
+    # 看板本地自持的页面（2026-10-31）：选型顾问 + 全站榜单（复刻主站 ranking.html）
+    # 都从本地出，导航不再跳主站——主站没部署/离线时看板依然完整可用。
     self_base = self_url.rstrip("/")
-    selector_url = self_base + "/selector.html"
 
     def _build_nav(active_page):
         def _nav_a(page, label):
-            if page == "selector.html":
-                cls = ' class="active" aria-current="page"' if active_page == "selector.html" else ""
-                return '<a href="{}"{}>{}</a>'.format(selector_url, cls, label)
+            if page in ("selector.html", "ranking.html"):
+                cls = ' class="active" aria-current="page"' if active_page == page else ""
+                return '<a href="{}"{}>{}</a>'.format(self_base + "/" + page, cls, label)
             cls = ' class="active" aria-current="page"' if (page is None and active_page is None) else ""
             return '<a href="{}"{}>{}</a>'.format(
                 (site_base + page) if page else self_url, cls, label)
@@ -7142,6 +7141,45 @@ def cmd_serve(args):
         _cache["station"].clear()
         return payload, False
 
+    # —— 全站榜单本地页（2026-10-31，复刻主站 ranking.html）——
+    # 模板 = 主站同名页的副本（ranking_template.html，随本仓库分发），启动时读入一次，
+    # 把页面内的相对链接（主站页面/静态资源/data JSON）改写成占位符；
+    # 请求到达时再按部署形态（独立根路径 / 反代子路径）填真实地址。
+    # 页面对站点导航/样式/数据 fetch 的相对引用全部走主站地址：反代部署下同源直连，
+    # 独立部署时跨域 fetch 失败会静默回退页面内嵌的实测种子数据（主站页自带的行为）。
+    def _load_ranking_template():
+        path = os.path.join(os.path.dirname(os.path.abspath(__file__)),
+                            "ranking_template.html")
+        try:
+            with open(path, encoding="utf-8") as f:
+                raw = f.read()
+        except OSError:
+            return None
+        rep = (
+            # 主站页面（详情页在 JS 拼串里也出现，两条一起覆盖）
+            ('href="index.html"', 'href="__SITE_BASE__index.html"'),
+            ('href="api.html"', 'href="__SITE_BASE__api.html"'),
+            ('href="blacklist.html"', 'href="__SITE_BASE__blacklist.html"'),
+            ('href="method.html', 'href="__SITE_BASE__method.html'),
+            ('href="onboarding.html"', 'href="__SITE_BASE__onboarding.html"'),
+            ('href="claim.html"', 'href="__SITE_BASE__claim.html"'),
+            ('href="detail.html?site=', 'href="__SITE_BASE__detail.html?site='),
+            ('"detail.html?site=', '"__SITE_BASE__detail.html?site='),
+            # 「模型比价」指回看板自身（主站写死 /price/，这里按部署形态给）
+            ('href="/price/"', 'href="__SELF_URL__"'),
+            # 全站榜单现在就是本页：指向本地
+            ('href="ranking.html"', 'href="__SELF_BASE__/ranking.html"'),
+            # 静态资源与数据
+            ('href="assets/', 'href="__SITE_BASE__assets/'),
+            ('src="assets/', 'src="__SITE_BASE__assets/'),
+            ('fetch("data/sites.json")', 'fetch("__SITE_BASE__data/sites.json")'),
+        )
+        for a, b in rep:
+            raw = raw.replace(a, b)
+        return raw
+
+    _RANKING_TMPL = _load_ranking_template()
+
     class Handler(http.server.BaseHTTPRequestHandler):
         def log_message(self, *a):
             pass
@@ -7188,6 +7226,20 @@ def cmd_serve(args):
                         .replace("__SITE_NAV__", site_nav_selector)
                         .replace("__SITE_BASE__", site_base)
                         .replace("__SELF_BASE__", self_base)
+                        .encode("utf-8"))
+                return
+            if u.path in ("/ranking.html", "/ranking", "/ranking/"):
+                # 全站榜单本地页：复刻主站 ranking.html（实测榜单口径），
+                # 链接/资源改写为占位符后本地自持；模板文件缺失时 302 回主站，不 500
+                if not _RANKING_TMPL:
+                    self.send_response(302)
+                    self.send_header("Location", site_base + "ranking.html")
+                    self.end_headers()
+                    return
+                self._send_html(_RANKING_TMPL
+                        .replace("__SITE_BASE__", site_base)
+                        .replace("__SELF_BASE__", self_base)
+                        .replace("__SELF_URL__", self_url)
                         .encode("utf-8"))
                 return
             conn = connect(db)
