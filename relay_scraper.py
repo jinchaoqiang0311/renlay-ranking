@@ -7040,6 +7040,19 @@ def cmd_serve(args):
     import socketserver
     from urllib.parse import urlparse, parse_qs
 
+    # 单实例锁(演进:双绑事故根治):serve 起来前先试连目标端口——能连上说明已有实例。
+    # allow_reuse_address 会让第二个实例静默绑成功(HANDOFF 坑#1:连接随机落旧代码),这里显式拒绝。
+    import socket as _socket
+    _probe = _socket.socket()
+    _probe.settimeout(1.0)
+    try:
+        if _probe.connect_ex((args.host, args.port)) == 0:
+            print(f"单实例锁:{args.host}:{args.port} 已有看板在跑,本次退出。"
+                  f"(确认旧进程已停后再启动;或用 serve-guarded.ps1 自动处理)")
+            return 1
+    finally:
+        _probe.close()
+
     db = args.db or DB_PATH
 
     # 返回主站地址(2026-10-28 与 RelayLens 整合):口径条的跳转目标,
@@ -7207,6 +7220,30 @@ def cmd_serve(args):
 
         def do_GET(self):
             u = urlparse(self.path)
+            # 健康检查:主站反代探活用(/price/healthz),放在一切路由与鉴权之前;任何版本都应实现
+            if u.path == "/healthz":
+                body = json.dumps({"ok": True, "pid": os.getpid(), "service": "renlay-ranking dashboard"},
+                                  ensure_ascii=False).encode("utf-8")
+                self.send_response(200)
+                self.send_header("Content-Type", "application/json; charset=utf-8")
+                self.send_header("Cache-Control", "no-store")
+                self.send_header("Content-Length", str(len(body)))
+                self.end_headers()
+                self.wfile.write(body)
+                return
+            # 可选令牌门(演进:公开前鉴权,HANDOFF P2):环境变量 RL_DASH_TOKEN 设置后,
+            # 除 /healthz 外的所有请求需带 X-RL-Token 头或 ?token= 参数;不设置则行为与历史完全一致
+            _tok = os.environ.get("RL_DASH_TOKEN", "")
+            if _tok:
+                _give = (self.headers.get("X-RL-Token") == _tok) or (parse_qs(u.query).get("token", [""])[0] == _tok)
+                if not _give:
+                    body = "看板鉴权已开启:需要访问令牌".encode("utf-8")
+                    self.send_response(401)
+                    self.send_header("Content-Type", "text/plain; charset=utf-8")
+                    self.send_header("Content-Length", str(len(body)))
+                    self.end_headers()
+                    self.wfile.write(body)
+                    return
             q = parse_qs(u.query)
             if u.path == "/":
                 # __SITE_NAV__/__SITE_BASE__:全站导航条与站内链接;__HOME_URL__:口径条跳转目标
@@ -7471,6 +7508,16 @@ def cmd_serve(args):
 
         def do_POST(self):
             u = urlparse(self.path)
+            # 令牌门与 do_GET 同规则:RL_DASH_TOKEN 开启后,POST 上报也需令牌(防公网伪造上报)
+            _tok = os.environ.get("RL_DASH_TOKEN", "")
+            if _tok:
+                _give = (self.headers.get("X-RL-Token") == _tok) or (parse_qs(u.query).get("token", [""])[0] == _tok)
+                if not _give:
+                    self.send_response(401)
+                    self.send_header("Content-Type", "text/plain; charset=utf-8")
+                    self.end_headers()
+                    self.wfile.write("需要令牌".encode("utf-8"))
+                    return
             if u.path not in ("/api/ingest/probe", "/api/ingest/prices"):
                 self.send_error(404)
                 return

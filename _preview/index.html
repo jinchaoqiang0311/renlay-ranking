@@ -1,0 +1,241 @@
+<!DOCTYPE html>
+<html lang="zh-CN"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>全站实测榜单 · 设计稿（参考 RelayLens）</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+:root{
+  --ink:#17211f; --sub:#66736f; --faint:#98a2b3;
+  --line:rgba(23,33,31,.14); --line-soft:rgba(23,33,31,.08);
+  --bg:#f5f7f4; --card:#fff;
+  --brand:#176b58; --brand-deep:#0e5746; --brand-soft:#e3f2eb;
+  --ok:#176b58; --warn:#9a6411; --bad:#b43d37; --gold:#8a6400;
+  --r:6px;
+  --font:"Inter","Noto Sans SC","PingFang SC","Microsoft YaHei",system-ui,sans-serif;
+}
+*{box-sizing:border-box}
+body{margin:0;font-family:var(--font);color:var(--ink);background:var(--bg);
+  line-height:1.55;-webkit-font-smoothing:antialiased;font-size:14px}
+a{color:var(--brand);text-decoration:none}
+.wrap{max-width:1240px;margin:0 auto;padding:0 20px 72px}
+
+/* 顶栏 */
+header{position:sticky;top:0;z-index:20;background:rgba(255,255,255,.96);
+  border-bottom:1px solid var(--line);backdrop-filter:blur(8px)}
+.bar{display:flex;align-items:center;gap:18px;height:58px;max-width:1240px;margin:0 auto;padding:0 20px}
+.logo{display:flex;align-items:center;gap:9px;font-weight:700;font-size:17px;color:var(--ink);letter-spacing:.02em}
+.logo .mark{width:26px;height:26px;border-radius:6px;background:var(--brand);color:#fff;
+  display:grid;place-items:center;font-size:13px;font-weight:800}
+.nav-links{display:flex;gap:2px;flex:1;flex-wrap:nowrap;overflow-x:auto;scrollbar-width:none}
+.nav-links::-webkit-scrollbar{display:none}
+.nav-links a{flex:0 0 auto;font-size:13px;font-weight:500;color:var(--sub);
+  padding:7px 11px;border-radius:6px;white-space:nowrap;transition:.15s}
+.nav-links a:hover{background:var(--brand-soft);color:var(--brand)}
+.nav-links a.active{background:var(--brand-soft);color:var(--brand-deep);box-shadow:inset 0 -2px 0 var(--brand)}
+
+/* 页头 */
+.hero{padding:30px 0 14px}
+.hero h1{font-size:clamp(26px,3.4vw,38px);font-weight:800;letter-spacing:.01em;margin:0 0 8px;line-height:1.15}
+.hero .sub{color:var(--sub);max-width:760px;margin:0;font-size:13.5px}
+.ph-stats{display:flex;gap:0;margin:18px 0 4px;border:1px solid var(--line-soft);border-radius:var(--r);background:#fff;overflow:hidden}
+.ph-stats .s{flex:1;padding:13px 18px;border-left:1px solid var(--line-soft)}
+.ph-stats .s:first-child{border-left:0}
+.ph-stats .v{font-size:20px;font-weight:800;color:var(--brand-deep);font-variant-numeric:tabular-nums}
+.ph-stats .k{font-size:11.5px;color:var(--sub);margin-top:2px}
+
+/* 场景分榜 */
+.scenes{display:flex;gap:6px;flex-wrap:wrap;margin:18px 0 4px}
+.scenes button{border:1px solid var(--line-soft);background:#fff;color:var(--sub);
+  font:inherit;font-size:13px;font-weight:600;padding:8px 14px;border-radius:var(--r);cursor:pointer;transition:.15s}
+.scenes button:hover{border-color:var(--brand);color:var(--brand)}
+.scenes button.on{background:var(--brand);color:#fff;border-color:var(--brand)}
+.weight-note{font-size:12px;color:var(--sub);margin:8px 2px 0}
+.weight-note b{color:var(--brand-deep)}
+
+/* 筛选 + 排序 */
+.tools{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin:16px 0 12px}
+.tools .lbl{font-size:12px;color:var(--faint);font-weight:600;letter-spacing:.04em}
+.chip{border:1px solid var(--line-soft);background:#fff;color:var(--sub);font:inherit;
+  font-size:12.5px;font-weight:600;padding:6px 12px;border-radius:999px;cursor:pointer;transition:.15s}
+.chip:hover{border-color:var(--brand);color:var(--brand)}
+.chip.on{background:var(--brand-soft);border-color:var(--brand);color:var(--brand-deep)}
+.sortbar{margin-left:auto;display:flex;gap:6px;align-items:center}
+.sortbar .sl{font-size:12px;color:var(--faint);font-weight:600}
+
+/* 表 */
+.panel{background:#fff;border:1px solid var(--line-soft);border-radius:var(--r);
+  box-shadow:0 2px 10px rgba(29,31,32,.06);overflow:hidden}
+table{width:100%;border-collapse:collapse;font-variant-numeric:tabular-nums}
+thead th{position:sticky;top:58px;z-index:5;background:#fff;border-bottom:1px solid var(--line);
+  text-align:left;padding:12px 14px;font-size:11.5px;font-weight:600;color:var(--sub);
+  letter-spacing:.02em;white-space:nowrap}
+thead th .arr{color:var(--faint);font-size:10px}
+thead th.num{text-align:right}
+tbody td{padding:13px 14px;border-bottom:1px solid var(--line-soft);vertical-align:middle;font-size:13px}
+tbody tr:last-child td{border-bottom:0}
+tbody tr:hover{background:rgba(23,33,31,.025)}
+.rk{font-weight:800;color:var(--faint);font-size:14px;width:24px;text-align:center}
+.rk.top{color:var(--gold)}
+
+/* 站点 */
+.stn{display:flex;align-items:center;gap:11px;min-width:0}
+.dot{width:9px;height:9px;border-radius:50%;flex:none;box-shadow:0 0 0 3px rgba(0,0,0,.04)}
+.dot.g{background:var(--ok);box-shadow:0 0 0 3px rgba(23,107,88,.14)}
+.dot.y{background:var(--warn);box-shadow:0 0 0 3px rgba(154,100,17,.14)}
+.dot.r{background:var(--bad);box-shadow:0 0 0 3px rgba(180,61,55,.14)}
+.stn .nm{font-weight:700;font-size:14px;white-space:nowrap}
+.stn .pay{font-size:11px;color:var(--faint);white-space:nowrap}
+.ab{width:30px;height:30px;border-radius:8px;display:grid;place-items:center;color:#fff;font-weight:700;font-size:12px;flex:none}
+
+/* 综合评分 */
+.score-b{display:inline-flex;align-items:center;gap:8px}
+.score{font-size:16px;font-weight:800;font-variant-numeric:tabular-nums}
+.s-90{color:var(--ok)}.s-75{color:#039855}.s-60{color:var(--warn)}.s-low{color:var(--bad)}
+.score-bar{width:38px;height:5px;border-radius:99px;background:#eef1f5;overflow:hidden}
+.score-bar i{display:block;height:100%;border-radius:99px;background:var(--brand)}
+
+/* 通用小字 */
+.cell{font-variant-numeric:tabular-nums;font-weight:600}
+.ok{color:var(--ok);font-weight:700}.warn{color:var(--warn);font-weight:600}.bad{color:var(--bad);font-weight:700}
+.muted{color:var(--faint);font-weight:500}
+.spark{display:flex;align-items:flex-end;gap:2px;height:22px}
+.spark i{width:4px;background:var(--brand);border-radius:2px;opacity:.75}
+.fp{display:inline-flex;align-items:center;gap:5px;font-size:12.5px;font-weight:600}
+.fp .d{width:7px;height:7px;border-radius:50%}
+.fp.pass .d{background:var(--ok)}.fp.partial .d{background:var(--warn)}.fp.pending .d{background:var(--faint)}
+.tag{display:inline-block;padding:2px 9px;border-radius:999px;font-size:11.5px;font-weight:600;
+  background:var(--brand-soft);color:var(--brand-deep)}
+.muted2{color:var(--faint);font-size:12px}
+.btn-detail{border:1px solid var(--line);background:#fff;color:var(--ink);font:inherit;
+  font-size:12.5px;font-weight:600;padding:6px 12px;border-radius:var(--r);cursor:pointer;transition:.15s;white-space:nowrap}
+.btn-detail:hover{border-color:var(--brand);color:var(--brand)}
+
+/* 页脚 */
+footer{background:#202c27;color:#d5e1da;margin-top:40px;padding:30px 0}
+.foot{max-width:1240px;margin:0 auto;padding:0 20px;display:flex;justify-content:space-between;gap:20px;flex-wrap:wrap}
+.foot .logo{color:#fff;font-weight:700;font-size:15px}
+.foot a{color:#d3e1d8}.foot a:hover{color:#d6ed7a}
+.foot .fine{color:#aab8b0;font-size:11.5px;margin-top:8px}
+.note{background:#fff8e1;border:1px solid #f0e0b0;color:#7a5a00;font-size:12px;
+  padding:8px 12px;border-radius:var(--r);margin:0 0 14px}
+</style></head>
+<body>
+
+<header><div class="bar">
+  <div class="logo"><span class="mark">R</span>RelayLens</div>
+  <nav class="nav-links">
+    <a href="#">选站比价</a><a href="#" class="active">全站榜单</a><a href="#">模型比价</a>
+    <a href="#">选型顾问</a><a href="#">避雷黑名单</a><a href="#">方法论</a><a href="#">工具</a><a href="#">API</a>
+  </nav>
+</div></header>
+
+<div class="wrap">
+
+  <div class="hero">
+    <h1>全站实测榜单 · 每一个数字都有账单背书</h1>
+    <p class="sub">所有指标来自每 6 小时自动执行的付费实测：应扣 vs 实扣逐轮对账、模型指纹比对、缓存命中统计。点击表头排序，点击行查看逐轮证据。</p>
+    <div class="ph-stats">
+      <div class="s"><div class="v">12</div><div class="k">在测中转站</div></div>
+      <div class="s"><div class="v">28</div><div class="k">近 7 天实测批次</div></div>
+      <div class="s"><div class="v">1,340</div><div class="k">对账样本</div></div>
+      <div class="s"><div class="v">6h</div><div class="k">更新频率</div></div>
+    </div>
+  </div>
+
+  <div class="scenes">
+    <button class="on" data-sc="all">综合榜</button>
+    <button data-sc="code">编程榜</button>
+    <button data-sc="office">办公榜</button>
+    <button data-sc="drama">剧本创作榜</button>
+    <button data-sc="biz">企业榜</button>
+    <button data-sc="image">图像榜</button>
+  </div>
+  <div class="weight-note"><b>综合榜</b> = 扣费诚实 30% + 稳定性 25% + 模型完整性 25% + 价格 20%</div>
+
+  <div class="tools">
+    <span class="lbl">快捷筛选</span>
+    <button class="chip">扣费偏差 = 0%</button>
+    <button class="chip">可用率 ≥ 99%</button>
+    <button class="chip">首字延迟 ≤ 2s</button>
+    <button class="chip">支持开票</button>
+    <button class="chip">指纹全通过</button>
+    <div class="sortbar">
+      <span class="sl">排序</span>
+      <button class="chip on">综合分</button>
+      <button class="chip">最低价</button>
+      <button class="chip">首字延迟</button>
+    </div>
+  </div>
+
+  <div class="note">⚠ 设计稿（参考 jinchaoqiang0311.github.io/relaylens 的 ranking.html 风格与字段）：站点名为项目真实站，指标为示意值，仅用于确认版式；正式实现由抓取数据实时计算。</div>
+
+  <div class="panel">
+    <table>
+      <thead><tr>
+        <th style="width:48px">排名</th>
+        <th style="width:180px">站点 / 状态</th>
+        <th>综合评分</th>
+        <th title="逐笔对账：|实扣−应扣| ≤ 阈值判通过">计费测试</th>
+        <th title="近 72 小时可用率走势">72H 可用率 / 趋势</th>
+        <th>流式 · 首字延迟</th>
+        <th title="注入开销 + 指纹验真">注入 · 指纹验真</th>
+        <th title="报价 = 站方公示额度价 × 充值比例">报价 ¥/M</th>
+        <th style="width:118px" title="起充 / 充值比例 / 退款">商业信息</th>
+        <th style="width:96px">操作</th>
+      </tr></thead>
+      <tbody id="rows"></tbody>
+    </table>
+  </div>
+</div>
+
+<footer><div class="foot">
+  <div>
+    <div class="logo">RelayLens</div>
+    <div class="fine">AI 中转站选站与价格比较 · 账单级实测 · 中立不收返佣</div>
+  </div>
+  <div class="fine">数据每 6 小时更新 · 指标口径见方法论页</div>
+</div></footer>
+
+<script>
+// 示意数据（站点名为真实，指标占位）
+const D=[
+ {rk:1,ab:"AX",color:"#e8590c",st:"g",nm:"Aixoras",pay:"余额/卡",score:92,dev:"0%",av:99.9,spark:[99,100,99,100,99,99,100,100,99,99,100,99],ttft:0.42,inj:0,fp:"pass",price:"¥0.9/M",grp:"Codex",rech:"¥1/$",refund:"未声明"},
+ {rk:2,ab:"MF",color:"#0b7285",st:"g",nm:"Modelflare",pay:"余额",score:90,dev:"0%",av:99.7,spark:[99,99,100,99,99,98,99,100,99,99,99,99],ttft:0.51,inj:0,fp:"pass",price:"¥1.6/M",grp:"常规",rech:"¥6.72/$",refund:"未声明"},
+ {rk:3,ab:"UU",color:"#0e9f6e",st:"g",nm:"UUAPI",pay:"余额/卡",score:88,dev:"0.2%",av:99.5,spark:[99,99,99,98,99,99,99,99,98,99,99,99],ttft:0.48,inj:0,fp:"pass",price:"¥1.1/M",grp:"常规",rech:"¥1/$",refund:"未声明"},
+ {rk:4,ab:"XC",color:"#2563eb",st:"g",nm:"Xcode",pay:"余额",score:85,dev:"0%",av:99.2,spark:[99,98,99,99,98,99,99,98,99,99,98,99],ttft:0.56,inj:0,fp:"pass",price:"¥1.4/M",grp:"常规",rech:"¥1/$",refund:"未声明"},
+ {rk:5,ab:"AN",color:"#7c3aed",st:"y",nm:"ApiNebula",pay:"余额",score:83,dev:"0.4%",av:98.9,spark:[99,98,99,97,98,99,98,97,98,99,98,98],ttft:0.61,inj:1200,fp:"pass",price:"¥1.8/M",grp:"常规",rech:"¥1/$",refund:"未声明"},
+ {rk:6,ab:"PK",color:"#0891b2",st:"g",nm:"PackyCode",pay:"余额",score:81,dev:"0.3%",av:99.1,spark:[99,99,98,99,99,98,99,99,98,99,98,99],ttft:0.59,inj:0,fp:"pass",price:"¥2.0/M",grp:"常规",rech:"—",refund:"未声明"},
+ {rk:7,ab:"KB",color:"#d97706",st:"g",nm:"Kapibala",pay:"余额",score:79,dev:"0.6%",av:98.5,spark:[98,98,97,98,99,98,97,98,98,97,98,98],ttft:0.64,inj:800,fp:"partial",price:"¥1.7/M",grp:"常规",rech:"—",refund:"未声明"},
+ {rk:8,ab:"PT",color:"#be185d",st:"y",nm:"Portix",pay:"余额",score:77,dev:"0.9%",av:98.0,spark:[98,97,98,96,98,97,97,96,98,97,96,97],ttft:0.70,inj:2600,fp:"partial",price:"¥2.1/M",grp:"常规",rech:"—",refund:"未声明"},
+ {rk:9,ab:"RU",color:"#065f46",st:"g",nm:"RunApi",pay:"余额",score:74,dev:"0.5%",av:97.8,spark:[98,97,96,98,97,96,97,98,96,97,96,97],ttft:0.68,inj:0,fp:"pass",price:"¥1.9/M",grp:"常规",rech:"—",refund:"未声明"},
+ {rk:10,ab:"LK",color:"#475569",st:"y",nm:"LinksApi",pay:"余额",score:72,dev:"1.4%",av:97.5,spark:[97,96,97,95,97,96,95,97,96,95,96,95],ttft:0.72,inj:3000,fp:"partial",price:"¥2.3/M",grp:"常规",rech:"—",refund:"未声明"},
+ {rk:11,ab:"RA",color:"#7e22ce",st:"y",nm:"RelayApiApp",pay:"余额",score:69,dev:"1.1%",av:96.9,spark:[96,96,95,97,96,95,96,95,96,95,94,95],ttft:0.78,inj:1500,fp:"partial",price:"¥2.5/M",grp:"常规",rech:"—",refund:"未声明"},
+ {rk:12,ab:"MC",color:"#1d4ed8",st:"r",nm:"MemeCode",pay:"余额",score:66,dev:"2.1%",av:96.2,spark:[96,95,94,96,95,94,93,95,94,93,95,94],ttft:0.85,inj:4398,fp:"pending",price:"¥2.8/M",grp:"常规",rech:"¥1/$",refund:"未声明"},
+];
+const sc=(v)=>v>=90?"s-90":v>=75?"s-75":v>=60?"s-60":"s-low";
+const dotc=s=>({g:"g",y:"y",r:"r"})[s];
+document.getElementById("rows").innerHTML=D.map(d=>{
+ const max=Math.max(...d.spark);
+ const bars=d.spark.map(v=>`<i style="height:${Math.round(v/max*22)}px"></i>`).join("");
+ const devc=d.dev==="0%"?"ok":(parseFloat(d.dev)<=1?"warn":"bad");
+ const fpc={pass:"pass",partial:"partial",pending:"pending"}[d.fp];
+ return `<tr>
+  <td><span class="rk ${d.rk<=3?'top':''}">${d.rk}</span></td>
+  <td><div class="stn"><span class="ab" style="background:${d.color}">${d.ab}</span>
+    <div><div style="display:flex;align-items:center;gap:7px"><span class="dot ${dotc(d.st)}"></span><span class="nm">${d.nm}</span></div>
+    <div class="pay">${d.pay}</div></div></div></td>
+  <td><span class="score-b"><span class="score ${sc(d.score)}">${d.score}</span>
+    <span class="score-bar"><i style="width:${d.score}%"></i></span></span></td>
+  <td><span class="cell ${devc}">${d.dev}</span></td>
+  <td><span class="cell ok">${d.av}%</span><div class="spark">${bars}</div></td>
+  <td><span class="cell">${d.ttft.toFixed(2)}s</span></td>
+  <td><div><span class="fp ${fpc}"><span class="d"></span>${d.fp==='pass'?'指纹通过':d.fp==='partial'?'指纹部分':(d.fp==='pending'?'核验中':'')}</span>
+    <div class="muted2">注入 ${d.inj} tok</div></div></td>
+  <td><span class="cell">${d.price}</span><div class="muted2">${d.grp}</div></td>
+  <td><div class="muted2">比例 ${d.rech}<br>退款 未声明</div></td>
+  <td><button class="btn-detail">查看证据 →</button></td>
+ </tr>`;
+}).join("");
+</script>
+</body></html>
