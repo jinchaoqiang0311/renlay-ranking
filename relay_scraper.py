@@ -4470,6 +4470,13 @@ h1{margin:0;font-size:21px;font-weight:750;letter-spacing:-.01em;line-height:1.2
 .fchip b{font-weight:750;color:var(--ink);margin-left:1px}
 .fchip.hd{background:linear-gradient(180deg,#fff,#ffeff6);color:#b0557f}
 .fnote{font-size:11px;font-weight:650;color:#c2455f;margin-left:2px}
+/* 数据新鲜度抽屉：汇总常驻，每站状态默认收起，点击展开 */
+.fchip.hd{cursor:pointer;user-select:none}
+.fchip.hd:active{transform:translateY(0) scale(.98)}
+.fcaret{display:inline-block;margin-left:3px;font-style:normal;font-size:9px;transition:transform var(--t1) var(--spring)}
+.fchip.hd.open .fcaret{transform:rotate(90deg)}
+.fdrawer{display:none;width:100%;flex-basis:100%;gap:6px;flex-wrap:wrap;margin-top:5px;padding-top:7px;border-top:1px dashed rgba(169,146,240,.35)}
+.fdrawer.open{display:flex}
 /* 页头右侧视图入口 */
 .topacts{display:flex;gap:8px;align-items:center}
 .tbtn{position:relative;height:32px;padding:0 14px;border-radius:999px;font-size:12px;font-weight:650;
@@ -5344,8 +5351,8 @@ function renderFreshness(list){
     ? '<span class="fnote">缺 '+staleNames.slice(0,3).join('、')
       +(staleNames.length>3?(' 等 '+staleNames.length+' 站'):'')+' 的数据，结论可能不完整</span>'
     : '';
-  const head='<span class="fchip hd"><b>数据新鲜度</b>'
-    +(stale?(' · '+stale+' 站待更新'):' · 全部最新')+'</span>'+note;
+  const head='<span class="fchip hd" id="freshToggle" role="button" tabindex="0" aria-expanded="false"><b>数据新鲜度</b>'
+    +(stale?(' · '+stale+' 站待更新'):' · 全部最新')+' <i class="fcaret">▸</i></span>'+note;
   const chips=list.map(f=>{
     const h=f.check_hours;
     const cls=(h==null||h>=24)?'bad':(h>=12?'warn':'ok');
@@ -5355,7 +5362,14 @@ function renderFreshness(list){
     return '<span class="fchip '+cls+'" title="'+esc(tip)+'"><i></i>'+esc(f.name)
       +' <b>'+fmtAge(h)+'</b></span>';
   }).join('');
-  box.innerHTML=head+chips;
+  box.innerHTML=head+'<span class="fdrawer" id="freshDrawer"></span>';
+  const _drawer=document.getElementById('freshDrawer');
+  _drawer.innerHTML=chips;
+  const _toggle=document.getElementById('freshToggle');
+  const _setOpen=open=>{ _drawer.classList.toggle('open',open);
+    _toggle.classList.toggle('open',open); _toggle.setAttribute('aria-expanded',open?'true':'false'); };
+  _toggle.addEventListener('click',()=>_setOpen(!_drawer.classList.contains('open')));
+  _toggle.addEventListener('keydown',e=>{ if(e.key==='Enter'||e.key===' '){e.preventDefault();_setOpen(!_drawer.classList.contains('open'));} });
 }
 function dataHint(){
   const h=dataAgeHours;
@@ -5834,7 +5848,18 @@ function refreshModels(){
   document.getElementById('fModel').value=mods.includes(modelSel)?modelSel:'';
   if(!mods.includes(modelSel)) modelSel='';
 }
-document.getElementById('q').addEventListener('input',()=>render());
+// 搜索框：输入即筛选，但做两件事避免"打一个字就卡住/打不下去"
+//  ① 防抖 160ms：连续输入只在停顿后重渲染一次，避免每字母都重建 600 行表格卡死输入
+//  ② 中文输入法组字保护：compositionstart~end 期间不重渲染，否则会打断组字丢字
+const _qEl=document.getElementById('q');
+let _qTimer=null, _qComposing=false;
+_qEl.addEventListener('compositionstart',()=>{ _qComposing=true; });
+_qEl.addEventListener('compositionend',()=>{ _qComposing=false; render(); });
+_qEl.addEventListener('input',()=>{
+  if(_qComposing) return;                 // 组字中：先不刷新，放完字再筛
+  if(_qTimer) clearTimeout(_qTimer);
+  _qTimer=setTimeout(render,160);          // 停手 160ms 后筛选一次，输入顺滑
+});
 document.getElementById('fStation').onchange=e=>{ selectStation(e.target.value); };
 // 选中某站＝拉该站全量明细；URL 恢复与下拉切换共用这一条路径
 function selectStation(name){
@@ -7196,6 +7221,31 @@ def cmd_serve(args):
     class Handler(http.server.BaseHTTPRequestHandler):
         def log_message(self, *a):
             pass
+
+        def do_HEAD(self):
+            # Cloud Studio / 反代健康检查常用 HEAD；BaseHTTPRequestHandler 无默认 do_HEAD 会回 501。
+            # 复用 do_GET 的路由，但把「响应头发送之后」的正文写入丢弃，符合 HEAD 语义，
+            # 且不改动任何 self.wfile.write 调用（按当前缩进自适应）。
+            _orig_end_headers = self.end_headers
+            _orig_write = self.wfile.write
+            self._headers_sent = False
+
+            def _end_headers():
+                _orig_end_headers()
+                self._headers_sent = True
+
+            def _write(b):
+                if getattr(self, "_headers_sent", False):
+                    return  # 头已发，丢弃正文
+                return _orig_write(b)
+
+            self.end_headers = _end_headers
+            self.wfile.write = _write
+            try:
+                self.do_GET()
+            finally:
+                self.end_headers = _orig_end_headers
+                self.wfile.write = _orig_write
 
         def _json(self, obj, status=200):
             body = json.dumps(obj, ensure_ascii=False).encode("utf-8")

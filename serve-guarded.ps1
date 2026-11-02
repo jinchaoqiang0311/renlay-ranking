@@ -11,7 +11,7 @@ foreach ($p in $procs) { Write-Host "停止旧看板进程 PID=$($p.ProcessId)";
 Start-Sleep -Milliseconds 800
 $env:RELAY_HOME_URL = "http://127.0.0.1:5173/index.html"
 $env:RELAY_SELF_URL = "/price/"
-if ($Token) { $env:RL_DASH_TOKEN = $Token } else { Remove-Item Env:RL_DASH_TOKEN -ErrorAction SilentlyContinue }
+if ($Token) { $env:RL_DASH_TOKEN = $Token } elseif ($env:RL_DASH_TOKEN) { Remove-Item Env:RL_DASH_TOKEN -Force }
 Start-Process -FilePath "pythonw" -ArgumentList "relay_scraper.py", "serve", "--port", "$Port" -WorkingDirectory $root -WindowStyle Hidden
 $alive = $false
 for ($i = 0; $i -lt 10; $i++) {
