@@ -5129,6 +5129,7 @@ html{scrollbar-gutter:stable}
   box-shadow:inset 0 -2px 0 #176b58}
 thead{top:60px}
 .cmphero{top:60px}
+a.stlink{color:#7db4e8;text-decoration:none}a.stlink:hover{text-decoration:underline}
 </style></head><body>
 <header class="rl-site-nav"><div class="rl-wrap">
   <a class="rl-logo" href="__SITE_BASE__index.html" title="返回 RelayLens 首页"><span class="rl-mark">◎</span>RelayLens</a>
@@ -5312,7 +5313,7 @@ function renderFreshness(list){
     const tip=(f.last_check?('上次检查 '+fmtLocal(f.last_check)):'从未成功抓取')
       +(f.change_hours!=null?('；价格 '+fmtAge(f.change_hours)+'未变动'):'')
       +(f.error?('；最近错误：'+f.error):'');
-    return '<span class="fchip '+cls+'" title="'+esc(tip)+'"><i></i>'+esc(f.name)
+    return '<span class="fchip '+cls+'" title="'+esc(tip)+'"><i></i>'+stlink(f.name)
       +' <b>'+fmtAge(h)+'</b></span>';
   }).join('');
   box.innerHTML=head+'<span class="fdrawer" id="freshDrawer"></span>';
@@ -5324,6 +5325,7 @@ function renderFreshness(list){
   _toggle.addEventListener('click',()=>_setOpen(!_drawer.classList.contains('open')));
   _toggle.addEventListener('keydown',e=>{ if(e.key==='Enter'||e.key===' '){e.preventDefault();_setOpen(!_drawer.classList.contains('open'));} });
 }
+const stlink=n=>'<a class="stlink" href="__SITE_BASE__detail.html?site='+encodeURIComponent(n)+'" target="_blank" rel="noopener">'+esc(n)+'</a>';
 function dataHint(){
   const h=dataAgeHours;
   if(h==null) return '尚无成功抓取记录';
@@ -5449,7 +5451,7 @@ function renderStations(list){
     const p=f.probes_24h||0, pf=f.probe_fail_24h||0;
     const pcls=p===0?'':(pf/p>=0.5?'up':(pf>0?'':'down'));
     const pTxt=p===0?'—':(p+(pf?('（失 '+pf+'）'):''));
-    return '<tr><td class="mono">'+esc(f.name)+'</td>'
+    return '<tr><td class="mono">'+stlink(f.name)+'</td>'
       +'<td>'+esc(f.mode)+'</td>'
       +'<td class="'+cls+'">'+(f.state||'')+'</td>'
       +'<td class="num">'+f.models+'</td>'
