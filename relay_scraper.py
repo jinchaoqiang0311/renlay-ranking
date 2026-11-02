@@ -3749,8 +3749,6 @@ SUMMARY_HEADERS = [
     "模型在该分组可用", "官方输入(¥/M)", "官方输出(¥/M)", "官方来源", "较官方价(%)", "对比官方价(%)",
     f"样例成本$({REF_TOKENS_IN // 1000}K入/{REF_TOKENS_OUT // 1000}K出)",
     "最低价来自站点", "充值比例(¥/$)", "充值比例来源", "分组", "分组倍率", "最低价分辨率",
-    "特价来自站点", "特价分组", "特价输入(¥/M)", "特价输出(¥/M)",
-    "特价按次价格(¥/次)", "特价按秒价格(¥/秒)", "特价",
     "72小时可用率", "最近12次状态",
 ]
 
@@ -3803,16 +3801,6 @@ def _summary_unit_price(x):
     return x["最低按次价格(¥/次)"] or 0
 
 
-def _spec_note(tx, billing):
-    """「特价」并列标注文案：站点 · 分组（¥x.xx/单位）。
-    特价常来自首充/活动/号池组，必须带出处，防止被当成普遍到手价。"""
-    amt = _detail_real_price(tx)
-    if not amt:
-        return ""
-    unit = {"per_token": "M", "per_second": "秒", "per_call": "次"}.get(billing, "")
-    return f"{tx['站点']} · {tx['分组']}（¥{amt:.2f}/{unit}）"
-
-
 def _avail_summary_text(d) -> str:
     """可用性检测摘要：'在售 3/5'（+ 真实调用探针时附 '· 可调用 1/1'）。"""
     if not d or not d.get("checked"):
@@ -3848,12 +3836,10 @@ def _avail_72h(d, probe72: dict) -> dict | None:
 
 
 def build_summary_rows(conn, model_agg=None):
-    """每模型一行汇总：默认组价为主口径 + 在售站数 + 折扣（getcheapai 式核心表）。
-    按聚合键分组（抹平 . 与 - 差异），显示名取主口径那条的规范名。
-    主口径 = 默认组（default）里各站的最低价：普通用户实际在 default 组，
-    全网最低组常是 VIP/号池/首充限定价（RelayLens 事故背书），当主价等于虚低误导。
-    全网最低价（含活动组）并列展示在「特价」列，仅在低于默认组价时给出；
-    没有任何站公示 default 组的模型回退全网最低价，避免模型从榜单消失。
+    """每模型一行汇总：全网最低价 + 在售站数 + 折扣（getcheapai 式核心表）。
+    按聚合键分组（抹平 . 与 - 差异），显示名取最低价那条的规范名。
+    主口径 = 全网最低价（含所有分组/首充/活动组），与 10-30 旧口径一致：
+    直接把能查到的最低价作为该模型的价格展示，不再区分默认组、也不再单列「特价」列。
 
     三种计费量纲不同，不能同轴比价，因此分段输出：
       per_token（$ / M tokens，对话类）、per_second（$ / 秒，视频类）、
@@ -3861,8 +3847,7 @@ def build_summary_rows(conn, model_agg=None):
     同一模型若在不同站用不同计费方式，会出现多行（由「计费方式」列区分），
     这样按秒/按次的低价不会被 token 行掩盖。非 token 模型没有官方基准，
     折扣列一律留空。"""
-    best = {}        # 主口径行：默认组（default）最低价（无默认组回退全网最低）
-    cheap = {}       # 特价行：全网最低价（含首充/活动组），并列展示
+    best = {}        # 主口径行：全网最低价（含所有分组/首充/活动组，即 10-30 旧口径）
     stations = {}
     avail = _avail_by_model(conn)          # 模型可用性检测结果（见 availability 子命令）
     probe_hist, probe_names = _probe_history_map(conn, 12)
@@ -3897,30 +3882,13 @@ def build_summary_rows(conn, model_agg=None):
         if not price:
             continue
         stations[pair].add(r["站点"])
-        # 特价候选：不分组别的全网最低（含首充/活动组），仅作并列展示
-        cur_c = cheap.get(pair)
-        if cur_c is None or price < (_detail_real_price(cur_c) or float("inf")):
-            cheap[pair] = r
-        # 主口径候选：默认组（default）里各站的最低价
-        if r["分组"] == "default":
-            cur = best.get(pair)
-            if cur is None or price < (_detail_real_price(cur) or float("inf")):
-                best[pair] = r
-    # 没有任何站公示 default 组的模型：回退全网最低价，避免模型从榜单消失
-    for _pair, _c in cheap.items():
-        best.setdefault(_pair, _c)
+        # 主口径候选：全网最低（含所有分组/首充/活动组），即 10-30 旧口径
+        cur = best.get(pair)
+        if cur is None or price < (_detail_real_price(cur) or float("inf")):
+            best[pair] = r
     rows = []
     for (key, billing), r in best.items():
         is_tok = billing == "per_token"
-        # 特价并列：全网最低行仅在严格低于主口径（默认组）价时给出，
-        # 同一行或同价则留空，避免「特价」列全是重复噪音
-        tx = cheap.get((key, billing))
-        if tx is r:
-            tx = None
-        elif tx is not None:
-            pc, pr = _detail_real_price(tx), _detail_real_price(r)
-            if pc is None or pr is None or pc >= pr:
-                tx = None
         rows.append({
             "模型规范名": r["模型规范名"], "模型家族": r["模型家族"],
             "公司": r.get("公司") or vendor_of(agg_key(r["模型规范名"])),
@@ -3955,20 +3923,6 @@ def build_summary_rows(conn, model_agg=None):
             "分组": r["分组"], "分组倍率": r["分组倍率"],
             # 视频按分辨率逐档展开后，这里标注最低价对应哪一档
             "最低价分辨率": r.get("分辨率") or "",
-            # —— 特价并列展示（全网最低，通常是首充/活动/号池组，标明出处防误导）——
-            # 数值统一 round(…,6)：浮点乘法会带出 0.037500000000000006 这类噪音
-            "特价来自站点": (tx["站点"] if tx else ""),
-            "特价分组": (tx["分组"] if tx else ""),
-            "特价输入(¥/M)": (round(_detail_real_price(tx), 6)
-                              if tx and billing == "per_token" else ""),
-            "特价输出(¥/M)": (round(tx["实付输出(¥/M)"] * _detail_fx(tx), 6)
-                              if tx and billing == "per_token"
-                              and tx["实付输出(¥/M)"] is not None else ""),
-            "特价按次价格(¥/次)": (round(_detail_real_price(tx), 6)
-                                   if tx and billing == "per_call" else ""),
-            "特价按秒价格(¥/秒)": (round(_detail_real_price(tx), 6)
-                                   if tx and billing == "per_second" else ""),
-            "特价": (_spec_note(tx, billing) if tx else ""),
             # 72 小时可用率：优先「该模型在各站的真实调用探测」，无模型探测时回退站点可达性
             "72小时可用率": ((dict(model_avail[key], lst=_avail_summary_text(avail.get(key)))
                               if key in model_avail else _avail_72h(avail.get(key), probe72))),
@@ -4090,9 +4044,9 @@ def cmd_cheapest(args):
         return 1
     rows = rows[: args.top]
     # 排序与主口径价都是真实人民币口径，所以主列给 ¥；内部额度$ 另列备查。
-    # 主口径=默认组价；全网最低价（可能是活动组）在「特价」列并列展示
+    # 主口径=默认组价（普通用户实际能拿到的最低价）
     print(f"{'模型规范名':<34}{'计费':>6}{'默认组¥入/M':>14}{'默认组¥出/M':>14}"
-          f"{'内部$输入/M':>13}{'站数':>5}{'较官方价%':>11}  主价来自 / 分组 ｜ 特价")
+          f"{'内部$输入/M':>13}{'站数':>5}{'较官方价%':>11}  主价来自 / 分组")
     for r in rows:
         disc = f"{r['较官方价(%)']:+.1f}%" if r["较官方价(%)"] != "" else "—"
         b = r["计费方式"]
@@ -4110,8 +4064,7 @@ def cmd_cheapest(args):
             p_usd = f"{fmt(r['最低按次价格($/次)'])}/次"
         print(f"{r['模型规范名'][:33]:<34}{label:>6}"
               f"{p_in:>14}{p_out:>14}{p_usd:>13}{r['在售站数']:>5}{disc:>11}  "
-              f"{r['最低价来自站点']} / {r['分组']}"
-              + (f" ｜ {r['特价']}" if r.get("特价") else ""))
+              f"{r['最低价来自站点']} / {r['分组']}")
     return 0
 
 
@@ -5542,13 +5495,10 @@ if(statsBox){
   statsBox.addEventListener('pointerleave',()=>resetTilt(null));
 }
 const COLS_SUMMARY=[{k:'模型规范名',t:'模型'},{k:'公司',t:'公司',h:1},{k:'计费方式',t:'计费',h:1},{k:'最低价来自站点',t:'最低价站点'},{k:'充值比例(¥/$)',t:'充值比例'},{k:'分组',t:'分组'},{k:'分组倍率',t:'倍率'},
-  {k:'特价',t:'特价'},{k:'特价来自站点',t:'特价站点',h:1},{k:'特价分组',t:'特价分组',h:1},
   {k:'模型在该分组可用',t:'可用',h:1},{k:'最低价分辨率',t:'分辨率'},
   {k:'最低按秒价格(¥/秒)',t:'¥/秒'},{k:'最低按次价格(¥/次)',t:'¥/次'},
   {k:'最低按秒价格($/秒)',t:'内部$/秒',h:1},{k:'最低按次价格($/次)',t:'内部$/次',h:1},
   {k:'最低实付输入(¥/M)',t:'输入',g:'Token价格（¥/M）'},{k:'最低实付输出(¥/M)',t:'输出',g:'Token价格（¥/M）'},
-  {k:'特价输入(¥/M)',t:'特价输入',g:'特价价格（¥/M）',h:1},{k:'特价输出(¥/M)',t:'特价输出',g:'特价价格（¥/M）',h:1},
-  {k:'特价按次价格(¥/次)',t:'特价¥/次',h:1},{k:'特价按秒价格(¥/秒)',t:'特价¥/秒',h:1},
   {k:'最低实付缓存读(¥/M)',t:'读取',g:'缓存价格（¥/M）'},{k:'最低实付缓存写(¥/M)',t:'写入',g:'缓存价格（¥/M）'},
   {k:'最低实付输入($/M)',t:'输入内部$/M',h:1},
   {k:'官方输入(¥/M)',t:'输入',g:'官方价格（¥/M）'},{k:'官方输出(¥/M)',t:'输出',g:'官方价格（¥/M）'},
@@ -5573,7 +5523,6 @@ const TOKEN_COLS=['实付输入($/M)','实付输出($/M)','实付输入(¥/M)','
   '实付缓存读($/M)','实付缓存写($/M)','实付缓存读(¥/M)','实付缓存写(¥/M)',
   '官方输入(¥/M)','官方输出(¥/M)',
   '最低实付输入($/M)','最低实付输出($/M)','最低实付输入(¥/M)','最低实付输出(¥/M)',
-  '特价输入(¥/M)','特价输出(¥/M)',
   '最低实付缓存读(¥/M)','最低实付缓存写(¥/M)','官方输出(¥/M)','对比官方价(%)'];
 const BILL_LABEL={per_token:'按量',per_second:'按秒',per_call:'按次'};
 fetch('/api/summary').then(r=>r.json()).then(d=>{
@@ -5625,7 +5574,10 @@ function poolRows(exclude){
 // 「语言模型」只看白名单（核心模型），图片/视频/音频仍按模型类型
 function kindMatch(r){
   if(!kindSel) return true;
-  return kindSel==='text' ? r['核心模型']==='是' : r['模型类型']===kindSel;
+  if(kindSel==='text') return r['核心模型']==='是';
+  // 图片视图只展示「按次计费」的报价，过滤掉混入的 token/按秒 计费行
+  if(kindSel==='image') return r['模型类型']==='image' && (r['计费方式']||'')==='per_call';
+  return r['模型类型']===kindSel;
 }
 function setKind(k){
   kindSel=(kindSel===k)?'':k;
@@ -5673,7 +5625,7 @@ let compact=(function(){ try{ return localStorage.getItem(COMPACT_KEY)!=='0'; }c
 const KEY_SUMMARY=['模型规范名','最低价来自站点','分组',
   '最低实付输入(¥/M)','最低实付输出(¥/M)',
   '最低按次价格(¥/次)','最低按秒价格(¥/秒)','最低价分辨率',
-  '特价','对比官方价(%)'];
+  '对比官方价(%)'];
 const KEY_STATION=['模型规范名','分组','分组倍率',
   '实付输入(¥/M)','实付输出(¥/M)',
   '按次价格(¥/次)','按秒价格(¥/秒)','分辨率',
@@ -5961,7 +5913,11 @@ function updateKindCounts(){
   const rs=filtered(true), c={text:0,image:0,video:0,audio:0};
   rs.forEach(r=>{
     if(r['核心模型']==='是') c.text++;
-    if(r['模型类型']&&r['模型类型']!=='text') c[r['模型类型']]=(c[r['模型类型']]||0)+1;
+    if(r['模型类型']&&r['模型类型']!=='text'){
+      // 图片仅统计按次计费行，与图片视图的过滤口径保持一致
+      if(r['模型类型']!=='image' || (r['计费方式']||'')==='per_call')
+        c[r['模型类型']]=(c[r['模型类型']]||0)+1;
+    }
   });
   document.querySelectorAll('.kind').forEach(b=>{
     const k=b.dataset.kind;
@@ -6665,6 +6621,12 @@ function renderCmp(){
   let rs=cmpRowsForRender();
   const total=cmpRows.length;
   const kind=cmpKindOf(rs);
+  // 图片模型：只展示「按次计费」(per_call) 的报价，过滤掉按 token/按秒 的混合计费行。
+  // 用逐行判断（而非只看 kind），多模型混合对比时不会误伤文本/视频的行。
+  if(rs.some(r=>r['模型类型']==='image')){
+    rs=rs.filter(r=>r['模型类型']!=='image' || (r['计费方式']||'')==='per_call');
+    if(!rs.length){ box.innerHTML='<div class="muted">该图片模型暂无按次计费报价</div>'; return; }
+  }
   // 仅 token 计价（语言/音频）做「每站只留最优分组」：token 模型一个站常有十几个分组会刷屏；
   // 图片已按站去重，视频的分辨率是有效维度，按站合并会丢掉其它档位报价
   const canBest=(kind==='text'||kind==='audio');
