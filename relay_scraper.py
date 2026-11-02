@@ -5351,7 +5351,7 @@ function loadChanges(){
   const hours=CHG_RANGES[document.getElementById('chgRange')?.value||'7']||168;
   const box=document.getElementById('viewChanges');
   box.innerHTML='<div class="panel"><div class="muted">正在加载调价记录…</div></div>';
-  fetch('/api/changes?hours='+hours).then(r=>r.json()).then(d=>{
+  fetch('api/changes?hours='+hours).then(r=>r.json()).then(d=>{
     if(d.error){ box.innerHTML='<div class="panel"><div class="empty err"><div class="ring">!</div>'
       +'<b>加载失败</b><div>'+esc(d.error)+'</div></div></div>'; return; }
     chgData=d; chgSort={k:'ts',asc:false};
@@ -5423,7 +5423,7 @@ function renderChanges(){
 function loadStations(){
   const box=document.getElementById('viewStations');
   box.innerHTML='<div class="panel"><div class="muted">正在加载站点信息…</div></div>';
-  fetch('/api/stations').then(r=>r.json()).then(d=>{
+  fetch('api/stations').then(r=>r.json()).then(d=>{
     if(d.error){ box.innerHTML='<div class="panel"><div class="empty err"><div class="ring">!</div>'
       +'<b>加载失败</b><div>'+esc(d.error)+'</div></div></div>'; return; }
     renderStations(d.stations||[]);
@@ -5525,7 +5525,7 @@ const TOKEN_COLS=['实付输入($/M)','实付输出($/M)','实付输入(¥/M)','
   '最低实付输入($/M)','最低实付输出($/M)','最低实付输入(¥/M)','最低实付输出(¥/M)',
   '最低实付缓存读(¥/M)','最低实付缓存写(¥/M)','官方输出(¥/M)','对比官方价(%)'];
 const BILL_LABEL={per_token:'按量',per_second:'按秒',per_call:'按次'};
-fetch('/api/summary').then(r=>r.json()).then(d=>{
+fetch('api/summary').then(r=>r.json()).then(d=>{
   // 后端异常时服务返回 {error}，必须显式提示，否则页面只是空表，看不出是接口挂了
   if(d.error){ rows=[]; initFilters(); render();
     document.getElementById('meta').textContent='接口错误：'+d.error;
@@ -5539,7 +5539,7 @@ fetch('/api/summary').then(r=>r.json()).then(d=>{
   initFilters(); render();
   if(stSel) selectStation(stSel);   // 链接指定了站点就拉该站明细
   // 顺手把调价条数挂到页头按钮上（只取计数，不渲染列表）
-  fetch('/api/changes?hours=168').then(r=>r.json()).then(c=>{
+  fetch('api/changes?hours=168').then(r=>r.json()).then(c=>{
     const n=(c.summary&&c.summary.total)||0;
     const el=document.getElementById('chgN');
     if(el) el.textContent=n?('近7天 '+n):'';
@@ -5822,7 +5822,7 @@ function selectStation(name){
     skeleton(8);
     // 切站时重新播放指标卡的级联上浮，提示"换了数据集"
     const sb=document.getElementById('stats'); if(sb) sb.classList.remove('land');
-    fetch('/api/station?name='+encodeURIComponent(stSel)).then(r=>r.json()).then(d=>{
+    fetch('api/station?name='+encodeURIComponent(stSel)).then(r=>r.json()).then(d=>{
       if(d.error){ stDetail=null; toast('站点数据加载失败：'+d.error); }
       else stDetail=d;
       afterLoad();
@@ -6256,7 +6256,7 @@ function esc(v){return String(v==null?'':v).replace(/&/g,'&amp;').replace(/</g,'
 function fmt(v){if(v==null||v==='')return '-';return Number(v).toPrecision(4).replace(/0+$/,'').replace(/\\.$/,'');}
 function hist(m){
   document.getElementById('chart').innerHTML='<div class="muted">加载 '+esc(m)+' 历史…</div>';
-  fetch('/api/history?model='+encodeURIComponent(m)).then(r=>r.json()).then(d=>{
+  fetch('api/history?model='+encodeURIComponent(m)).then(r=>r.json()).then(d=>{
     const s=(d.series||[]); if(!s.length){document.getElementById('chart').innerHTML=
       '<div class="muted">无历史数据</div>';return;}
     const by={}; s.forEach(p=>{(by[p.station+' / '+p.group]=by[p.station+' / '+p.group]||[]).push(p)});
@@ -6741,7 +6741,7 @@ function cmp(m){
   box.innerHTML='<div class="muted">加载 '+esc(list.join('、'))+' 跨站对比…</div>';
   // 多模型并行取数；单个模型失败不影响其余
   Promise.all(list.map(x=>
-    fetch('/api/compare?model='+encodeURIComponent(x)).then(r=>r.json())
+    fetch('api/compare?model='+encodeURIComponent(x)).then(r=>r.json())
       .catch(()=>({error:String(x)+' 加载失败'}))
   )).then(ds=>{
     const bad=ds.filter(d=>d.error);
@@ -6884,7 +6884,7 @@ function selFormHtml(models){
 
 function loadModels(){
   const box=document.getElementById('selForm');
-  fetch('/api/summary').then(r=>r.json()).then(d=>{
+  fetch('api/summary').then(r=>r.json()).then(d=>{
     // 只保留有跨站在售的按量计费模型（同看板汇总表口径）
     const models=[...new Map((d.rows||[])
       .filter(r=>r['计费方式']==='per_token')
@@ -6921,8 +6921,8 @@ function runSelector(){
   const out=document.getElementById('selOut');
   out.innerHTML='<div class="muted">正在计算…</div>';
   Promise.all([
-    fetch('/api/compare?model='+encodeURIComponent(model)).then(r=>r.json()),
-    fetch('/api/bench?limit=200').then(r=>r.json())
+    fetch('api/compare?model='+encodeURIComponent(model)).then(r=>r.json()),
+    fetch('api/bench?limit=200').then(r=>r.json())
   ]).then(([cmp,bench])=>{
     const ttftBy={};
     (bench.rows||[]).forEach(b=>{
